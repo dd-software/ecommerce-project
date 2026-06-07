@@ -13,4 +13,5 @@ La reducción del inventario ocurre únicamente después de recibir la confirmac
 ## RN-004 Usuarios deshabilitados no pueden iniciar sesión.
 Si un usuario ha sido marcado como "deshabilitado" en la base de datos (por ejemplo, por inactividad o sanción), el sistema debe rechazar su intento de autenticación mostrando un mensaje genérico de "usuario o contraseña incorrectos".
 
-RN-005 Todo pedido debe tener trazabilidad de estados.
+## RN-005 Todo pedido debe tener trazabilidad de estados.
+Cada compra registrada debe contar con un historial de estados mínimos: "pendiente", "pagado", "en preparación", "enviado", "entregado". Solo el administrador y supervisor pueden modificar estos estados.

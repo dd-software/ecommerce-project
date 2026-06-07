@@ -1,10 +1,625 @@
 openapi: 3.0.0
 info:
-  title: API admin
+  title: API Admin
+  description: |
+    Contrato de API para el módulo de administración del sistema ecommerce.
+    Provee endpoints para la gestión completa de productos, categorías, pedidos
+    y usuarios del sistema. Todos los endpoints requieren autenticación con
+    token JWT y rol ADMIN.
+    
+    Reglas de negocio:
+    - Solo usuarios con rol ADMIN pueden acceder a estos endpoints.
+    - No es posible eliminar un producto que tenga stock reservado o pedidos activos.
+    - No es posible eliminar una categoría que tenga productos asociados.
+    - Al desactivar un usuario, sus sesiones activas se invalidan inmediatamente.
+    - Los pedidos solo pueden avanzar en su flujo de estados definido.
+    - Flujo de estados de pedido: PENDIENTE_PAGO → PAGADO → EN_PREPARACION → ENVIADO → ENTREGADO
+    - Un pedido puede ser CANCELADO desde cualquier estado anterior a ENVIADO.
   version: 1.0.0
+  contact:
+    name: Equipo Contratos API
+servers:
+  - url: /api/v1
+    description: Servidor principal
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: productos-admin
+    description: Gestión de productos del catálogo
+  - name: categorias-admin
+    description: Gestión de categorías
+  - name: pedidos-admin
+    description: Gestión y seguimiento de pedidos
+  - name: usuarios-admin
+    description: Gestión de usuarios del sistema
+
 paths:
-  /api/admin:
+  # ─── PRODUCTOS ───────────────────────────────────────────────
+  /api/admin/productos:
     get:
+      tags: [productos-admin]
+      summary: Listar todos los productos (incluye inactivos)
+      description: |
+        Retorna todos los productos del sistema, incluyendo los inactivos y sin stock.
+        A diferencia del catálogo público, no aplica filtros de disponibilidad.
+      operationId: adminListarProductos
+      parameters:
+        - name: pagina
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: por_pagina
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: activo
+          in: query
+          description: Filtrar por estado activo/inactivo
+          schema: { type: boolean }
+        - name: busqueda
+          in: query
+          schema: { type: string }
       responses:
         '200':
-          description: OK
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductosPaginados'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [productos-admin]
+      summary: Crear nuevo producto
+      description: |
+        Crea un producto en el catálogo.
+        El producto se crea con stock 0; el stock se gestiona vía módulo de inventario.
+        El nombre del producto debe ser único en el sistema.
+      operationId: adminCrearProducto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoRequest'
+            example:
+              nombre: "Zapatilla Running Pro X"
+              descripcion: "Zapatilla de alto rendimiento para running"
+              precio: 59990
+              categoria_id: 3
+              activo: true
+              imagenes:
+                - url: "https://cdn.ejemplo.com/img/zap-x-1.jpg"
+                  principal: true
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Ya existe un producto con ese nombre
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/productos/{id}:
+    put:
+      tags: [productos-admin]
+      summary: Actualizar un producto
+      description: Modifica los datos de un producto existente.
+      operationId: adminActualizarProducto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoRequest'
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [productos-admin]
+      summary: Eliminar un producto
+      description: |
+        Elimina un producto del sistema (eliminación lógica: marca como inactivo).
+        No permite eliminar si el producto tiene stock reservado.
+      operationId: adminEliminarProducto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Producto eliminado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MensajeSimple'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: No se puede eliminar; tiene stock reservado o pedidos activos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─── CATEGORÍAS ───────────────────────────────────────────────
+  /api/admin/categorias:
+    post:
+      tags: [categorias-admin]
+      summary: Crear categoría
+      operationId: adminCrearCategoria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoriaRequest'
+      responses:
+        '201':
+          description: Categoría creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categoria'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/categorias/{id}:
+    put:
+      tags: [categorias-admin]
+      summary: Actualizar categoría
+      operationId: adminActualizarCategoria
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoriaRequest'
+      responses:
+        '200':
+          description: Categoría actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categoria'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [categorias-admin]
+      summary: Eliminar categoría
+      description: No permite eliminar si tiene productos asociados.
+      operationId: adminEliminarCategoria
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Categoría eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Categoría tiene productos asociados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─── PEDIDOS ───────────────────────────────────────────────
+  /api/admin/pedidos:
+    get:
+      tags: [pedidos-admin]
+      summary: Listar todos los pedidos
+      description: Retorna todos los pedidos del sistema con filtros opcionales.
+      operationId: adminListarPedidos
+      parameters:
+        - name: estado
+          in: query
+          schema:
+            type: string
+            enum: [PENDIENTE_PAGO, PAGADO, EN_PREPARACION, ENVIADO, ENTREGADO, CANCELADO]
+        - name: desde
+          in: query
+          schema: { type: string, format: date }
+        - name: hasta
+          in: query
+          schema: { type: string, format: date }
+        - name: pagina
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: por_pagina
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Lista de pedidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PedidosPaginados'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/pedidos/{id}/estado:
+    put:
+      tags: [pedidos-admin]
+      summary: Actualizar estado de un pedido
+      description: |
+        Avanza el estado de un pedido según el flujo definido.
+        Al pasar a ENVIADO, se requiere el número de seguimiento.
+        Un pedido CANCELADO libera automáticamente el stock reservado.
+      operationId: adminActualizarEstadoPedido
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado]
+              properties:
+                estado:
+                  type: string
+                  enum: [EN_PREPARACION, ENVIADO, ENTREGADO, CANCELADO]
+                numero_seguimiento:
+                  type: string
+                  description: Requerido cuando el nuevo estado es ENVIADO
+                motivo_cancelacion:
+                  type: string
+                  description: Requerido cuando el nuevo estado es CANCELADO
+      responses:
+        '200':
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MensajeSimple'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Transición de estado no permitida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ─── USUARIOS ───────────────────────────────────────────────
+  /api/admin/usuarios:
+    get:
+      tags: [usuarios-admin]
+      summary: Listar usuarios del sistema
+      operationId: adminListarUsuarios
+      parameters:
+        - name: rol
+          in: query
+          schema: { type: string, enum: [cliente, admin] }
+        - name: activo
+          in: query
+          schema: { type: boolean }
+        - name: pagina
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: por_pagina
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuariosPaginados'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/usuarios/{id}/estado:
+    put:
+      tags: [usuarios-admin]
+      summary: Activar o desactivar un usuario
+      description: |
+        Cambia el estado activo/inactivo de un usuario.
+        Al desactivar, todas las sesiones activas del usuario se invalidan.
+        Un administrador no puede desactivarse a sí mismo.
+      operationId: adminCambiarEstadoUsuario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [activo]
+              properties:
+                activo:
+                  type: boolean
+      responses:
+        '200':
+          description: Estado del usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MensajeSimple'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ProductoRequest:
+      type: object
+      required: [nombre, precio, categoria_id]
+      properties:
+        nombre:
+          type: string
+          maxLength: 200
+        descripcion:
+          type: string
+          maxLength: 2000
+        precio:
+          type: number
+          minimum: 0
+          description: Precio en CLP
+        categoria_id:
+          type: integer
+        activo:
+          type: boolean
+          default: true
+        imagenes:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                format: uri
+              principal:
+                type: boolean
+
+    Producto:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        precio:
+          type: number
+        categoria_id:
+          type: integer
+        activo:
+          type: boolean
+        creado_en:
+          type: string
+          format: date-time
+
+    ProductosPaginados:
+      type: object
+      properties:
+        datos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Producto'
+        paginacion:
+          $ref: '#/components/schemas/Paginacion'
+
+    CategoriaRequest:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+        descripcion:
+          type: string
+        padre_id:
+          type: integer
+          nullable: true
+
+    Categoria:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        padre_id:
+          type: integer
+          nullable: true
+
+    PedidoResumen:
+      type: object
+      properties:
+        id:
+          type: integer
+        usuario_id:
+          type: integer
+        estado:
+          type: string
+          enum: [PENDIENTE_PAGO, PAGADO, EN_PREPARACION, ENVIADO, ENTREGADO, CANCELADO]
+        total:
+          type: number
+        creado_en:
+          type: string
+          format: date-time
+
+    PedidosPaginados:
+      type: object
+      properties:
+        datos:
+          type: array
+          items:
+            $ref: '#/components/schemas/PedidoResumen'
+        paginacion:
+          $ref: '#/components/schemas/Paginacion'
+
+    UsuarioResumen:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        email:
+          type: string
+        rol:
+          type: string
+          enum: [cliente, admin]
+        activo:
+          type: boolean
+        creado_en:
+          type: string
+          format: date-time
+
+    UsuariosPaginados:
+      type: object
+      properties:
+        datos:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsuarioResumen'
+        paginacion:
+          $ref: '#/components/schemas/Paginacion'
+
+    Paginacion:
+      type: object
+      properties:
+        pagina_actual:
+          type: integer
+        por_pagina:
+          type: integer
+        total_registros:
+          type: integer
+        total_paginas:
+          type: integer
+
+    MensajeSimple:
+      type: object
+      properties:
+        mensaje:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+
+  responses:
+    BadRequest:
+      description: Datos de entrada inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Token ausente o inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Sin permisos suficientes (requiere rol ADMIN)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            codigo: "ACCESO_DENEGADO"
+            mensaje: "Se requiere rol de administrador"
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

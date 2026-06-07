@@ -1,10 +1,287 @@
 openapi: 3.0.0
 info:
-  title: API auth
+  title: API Autenticación
+  description: |
+    Contrato de API para el módulo de autenticación del sistema ecommerce.
+    Gestiona el registro, inicio de sesión, cierre de sesión y renovación de tokens
+    de los usuarios del sistema (clientes y administradores).
   version: 1.0.0
+  contact:
+    name: Equipo Contratos API
+servers:
+  - url: /api/v1
+    description: Servidor principal
+
+tags:
+  - name: auth
+    description: Operaciones de autenticación y gestión de sesiones
+
 paths:
-  /api/auth:
-    get:
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Registrar nuevo usuario
+      description: |
+        Crea una nueva cuenta de cliente en el sistema.
+        Valida que el email no esté registrado previamente.
+        Envía un correo de verificación tras el registro exitoso.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              nombre: "Juan Pérez"
+              email: "juan@ejemplo.com"
+              password: "MiPassword123!"
+              telefono: "+56912345678"
+      responses:
+        '201':
+          description: Usuario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: El email ya está registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                codigo: "EMAIL_DUPLICADO"
+                mensaje: "El email ya está registrado en el sistema"
+
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Iniciar sesión
+      description: |
+        Autentica a un usuario con email y contraseña.
+        Retorna un token JWT de acceso y un refresh token.
+        Registra la fecha y hora del último acceso.
+        Bloquea la cuenta tras 5 intentos fallidos consecutivos.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "juan@ejemplo.com"
+              password: "MiPassword123!"
       responses:
         '200':
-          description: OK
+          description: Autenticación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Credenciales incorrectas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                codigo: "CREDENCIALES_INVALIDAS"
+                mensaje: "Email o contraseña incorrectos"
+        '423':
+          description: Cuenta bloqueada por múltiples intentos fallidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Cerrar sesión
+      description: |
+        Invalida el token JWT activo del usuario.
+        Agrega el token a la lista negra hasta su expiración natural.
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sesión cerrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MensajeSimple'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Renovar token de acceso
+      description: |
+        Genera un nuevo token JWT de acceso usando el refresh token.
+        El refresh token tiene validez de 30 días.
+        El access token renovado tiene validez de 1 hora.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  description: Token de renovación obtenido en el login
+      responses:
+        '200':
+          description: Token renovado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Refresh token inválido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Obtener perfil del usuario autenticado
+      description: Retorna los datos del usuario asociado al token JWT activo.
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [nombre, email, password]
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Nombre completo del usuario
+        email:
+          type: string
+          format: email
+          description: Email único del usuario
+        password:
+          type: string
+          minLength: 8
+          description: |
+            Contraseña del usuario. Debe contener al menos:
+            una mayúscula, una minúscula, un número y un carácter especial.
+        telefono:
+          type: string
+          pattern: '^\+?[0-9]{8,15}$'
+          description: Teléfono de contacto (opcional)
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT de acceso, válido por 1 hora
+        refresh_token:
+          type: string
+          description: Token de renovación, válido por 30 días
+        token_type:
+          type: string
+          example: "Bearer"
+        usuario:
+          $ref: '#/components/schemas/Usuario'
+
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        nombre:
+          type: string
+          example: "Juan Pérez"
+        email:
+          type: string
+          format: email
+        rol:
+          type: string
+          enum: [cliente, admin]
+        activo:
+          type: boolean
+        creado_en:
+          type: string
+          format: date-time
+
+    MensajeSimple:
+      type: object
+      properties:
+        mensaje:
+          type: string
+          example: "Operación realizada exitosamente"
+
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        detalles:
+          type: array
+          items:
+            type: string
+
+  responses:
+    BadRequest:
+      description: Datos de entrada inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Token ausente o inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            codigo: "NO_AUTORIZADO"
+            mensaje: "Token de acceso requerido o inválido"

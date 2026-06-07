@@ -15,3 +15,6 @@ Si un usuario ha sido marcado como "deshabilitado" en la base de datos (por ejem
 
 ## RN-005 Todo pedido debe tener trazabilidad de estados.
 Cada compra registrada debe contar con un historial de estados mínimos: "pendiente", "pagado", "en preparación", "enviado", "entregado". Solo el administrador y supervisor pueden modificar estos estados.
+
+## RN-006 - Carrito persiste al cerrar el navegador.
+El carrito de compras debe almacenarse en el navegador (localStorage o IndexedDB), no en sesiones del servidor. Esto garantiza que al cerrar y reabrir el navegador, los productos sigan en el carrito sin necesidad de iniciar sesión.

@@ -1,10 +1,285 @@
 openapi: 3.0.0
 info:
-  title: API catalogo
+  title: API Catálogo
+  description: |
+    Contrato de API para el módulo de catálogo del sistema ecommerce.
+    Gestiona la consulta y búsqueda de productos, categorías y su disponibilidad.
+    Este módulo es de solo lectura para clientes; las operaciones de creación
+    y modificación de productos son responsabilidad del módulo Admin.
   version: 1.0.0
+  contact:
+    name: Equipo Contratos API
+servers:
+  - url: /api/v1
+    description: Servidor principal
+
+tags:
+  - name: productos
+    description: Consulta de productos del catálogo
+  - name: categorias
+    description: Consulta de categorías de productos
+
 paths:
-  /api/catalogo:
+  /api/catalogo/productos:
     get:
+      tags: [productos]
+      summary: Listar productos del catálogo
+      description: |
+        Retorna una lista paginada de productos activos disponibles.
+        Permite filtrar por categoría, rango de precio y texto de búsqueda.
+        Solo retorna productos con stock > 0 y estado activo.
+      operationId: listarProductos
+      parameters:
+        - name: pagina
+          in: query
+          description: Número de página (base 1)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: por_pagina
+          in: query
+          description: Cantidad de resultados por página
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: categoria_id
+          in: query
+          description: Filtrar por ID de categoría
+          schema:
+            type: integer
+        - name: precio_min
+          in: query
+          description: Precio mínimo (en pesos chilenos)
+          schema:
+            type: number
+            minimum: 0
+        - name: precio_max
+          in: query
+          description: Precio máximo (en pesos chilenos)
+          schema:
+            type: number
+        - name: busqueda
+          in: query
+          description: Texto libre para buscar en nombre y descripción del producto
+          schema:
+            type: string
+            maxLength: 100
+        - name: orden
+          in: query
+          description: Campo por el cual ordenar resultados
+          schema:
+            type: string
+            enum: [precio_asc, precio_desc, nombre_asc, nombre_desc, mas_nuevo]
+            default: nombre_asc
       responses:
         '200':
-          description: OK
+          description: Lista de productos obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductosPaginados'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/catalogo/productos/{id}:
+    get:
+      tags: [productos]
+      summary: Obtener detalle de un producto
+      description: |
+        Retorna la información completa de un producto por su ID.
+        Incluye descripción, imágenes, precio, stock disponible y categoría.
+        Si el producto está inactivo o sin stock, retorna 404.
+      operationId: obtenerProducto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID único del producto
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle del producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductoDetalle'
+              example:
+                id: 15
+                nombre: "Zapatilla Running Pro"
+                descripcion: "Zapatilla ideal para running de alto rendimiento"
+                precio: 49990
+                stock: 30
+                categoria:
+                  id: 3
+                  nombre: "Calzado Deportivo"
+                imagenes:
+                  - url: "https://cdn.ejemplo.com/productos/15/img1.jpg"
+                    principal: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/catalogo/categorias:
+    get:
+      tags: [categorias]
+      summary: Listar categorías activas
+      description: |
+        Retorna todas las categorías activas del catálogo.
+        Incluye subcategorías anidadas bajo su categoría padre.
+      operationId: listarCategorias
+      responses:
+        '200':
+          description: Lista de categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Categoria'
+
+  /api/catalogo/categorias/{id}/productos:
+    get:
+      tags: [categorias]
+      summary: Listar productos de una categoría
+      description: |
+        Retorna los productos activos pertenecientes a una categoría específica.
+        Incluye productos de subcategorías si las hubiera.
+        Admite los mismos parámetros de paginación que /productos.
+      operationId: productosPorCategoria
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la categoría
+          schema:
+            type: integer
+        - name: pagina
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: por_pagina
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Productos de la categoría
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductosPaginados'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    ProductoResumen:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        precio:
+          type: number
+          description: Precio en pesos chilenos (CLP)
+        stock:
+          type: integer
+        imagen_principal:
+          type: string
+          format: uri
+        categoria_id:
+          type: integer
+
+    ProductoDetalle:
+      allOf:
+        - $ref: '#/components/schemas/ProductoResumen'
+        - type: object
+          properties:
+            descripcion:
+              type: string
+            categoria:
+              $ref: '#/components/schemas/Categoria'
+            imagenes:
+              type: array
+              items:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  principal:
+                    type: boolean
+            creado_en:
+              type: string
+              format: date-time
+            actualizado_en:
+              type: string
+              format: date-time
+
+    ProductosPaginados:
+      type: object
+      properties:
+        datos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductoResumen'
+        paginacion:
+          type: object
+          properties:
+            pagina_actual:
+              type: integer
+            por_pagina:
+              type: integer
+            total_registros:
+              type: integer
+            total_paginas:
+              type: integer
+
+    Categoria:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        padre_id:
+          type: integer
+          nullable: true
+          description: ID de la categoría padre; null si es categoría raíz
+        subcategorias:
+          type: array
+          items:
+            $ref: '#/components/schemas/Categoria'
+
+    Error:
+      type: object
+      properties:
+        codigo:
+          type: string
+        mensaje:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Parámetros de consulta inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            codigo: "NO_ENCONTRADO"
+            mensaje: "El recurso solicitado no existe o no está disponible"

@@ -34,3 +34,6 @@ La sesión de usuario no debe ser persistente. Se usará almacenamiento de sesi�
 
 ## RN-012 - Contraseña almacenada hasheada.
 Todas las contraseñas de usuario deben almacenarse en la base de datos utilizando un algoritmo de hashing seguro (ej: password_hash() de PHP con BCRYPT o Argon2). Nunca se almacenarán en texto plano.
+
+## RN-013 - Alerta de stock configurable por producto.
+El sistema debe permitir configurar un umbral mínimo de stock de forma individual por producto (ej: 3 unidades para un producto A, 10 para producto B). Cuando el stock caiga por debajo de ese umbral, se mostrará una alerta visible en el dashboard del administrador y supervisor.

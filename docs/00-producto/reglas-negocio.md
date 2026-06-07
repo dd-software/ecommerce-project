@@ -21,3 +21,6 @@ El carrito de compras debe almacenarse en el navegador (localStorage o IndexedDB
 
 ## RN-007 - Comportamiento del carrito al iniciar sesión.
 Cuando un usuario anónimo con productos en el carrito inicie sesión, el sistema debe fusionar el carrito local con el carrito del usuario almacenado en la base de datos (si existe), priorizando cantidades actualizadas y evitando duplicados.
+
+## RN-008 - Carrito con producto sin stock.
+Si un producto en el carrito queda sin stock disponible (por ejemplo, porque otro usuario compró la última unidad), el sistema debe marcar dicho producto como "no disponible" en el carrito y notificar al usuario al intentar proceder al checkout.

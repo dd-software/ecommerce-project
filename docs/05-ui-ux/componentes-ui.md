@@ -59,7 +59,7 @@ Tarjeta visual reutilizable que representa un producto individual en listados, c
 ### 2.5 Reglas de Negocio
 
 1. Si `stock === 0`, el botón "Agregar al carrito" se deshabilita y se muestra la etiqueta "Sin stock".
-2. Si `precioDescuento` es provisto y menor a `precio`, se calcula y muestra el porcentaje de descuento: `Math.round((1 - precioDescuento / precio) * 100)%`.
+2. Si `precioDescuento` es provisto y menor a `precio`, se calcula y muestra el porcentaje de descuento: `Math.round((1 - precioDescuento / precio) * 100)` + `"%"`.
 3. Si `precioDescuento >= precio`, se ignora y no se muestra descuento alguno.
 4. La calificación se renderiza con estrellas (escala 0–5); fracción menor a 0.5 redondea hacia abajo.
 5. Si `nombre` supera los 60 caracteres en la vista de tarjeta, se trunca con elipsis.

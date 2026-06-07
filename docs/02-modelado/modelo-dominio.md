@@ -10,7 +10,7 @@ El modelo cubre las siguientes entidades principales:
 - `Dirección`
 - `Carrito` / `ItemCarrito`
 - `Producto`
-- `Categoría`
+- `Categoria`
 - `Inventario`
 - `Imagen`
 - `Pedido`
@@ -36,7 +36,7 @@ Pedido
  └── tiene uno        → Pago
 
 Producto
- ├── pertenece a uno  → Categoría
+ ├── pertenece a uno  → Categoria
  ├── tiene uno        → Inventario
  └── tiene muchas     → Imagen
 ```
@@ -102,13 +102,14 @@ Producto
 | `pais` | string | Sí | Código ISO 3166-1 alpha-2 (ej. `MX`, `CO`) |
 | `referencia` | string | No | Indicaciones adicionales; máx. 300 caracteres |
 | `esPredeterminada` | boolean | Sí | Default: `false`; solo una dirección por usuario puede ser `true` |
+| `archivada` | boolean | Sí | Default: `false`; si `true`, la dirección no puede editarse ni eliminarse (ver regla 4) |
 
 #### 3.2.2 Invariantes y Reglas de Negocio
 
 1. Un usuario puede tener máximo 5 direcciones guardadas.
 2. Solo una dirección por usuario puede tener `esPredeterminada === true`.
 3. Al eliminar la dirección predeterminada, ninguna otra se convierte automáticamente en predeterminada; el usuario debe designar una nueva.
-4. Las direcciones asociadas a pedidos ya realizados no pueden eliminarse; se marcan como archivadas.
+4. Las direcciones asociadas a pedidos ya realizados no pueden eliminarse ni editarse; se marcan con `archivada = true`. Las direcciones archivadas no aparecen en la selección de dirección de envío para nuevos pedidos.
 
 ---
 
@@ -193,13 +194,13 @@ Producto
 
 | Relación | Tipo | Entidad relacionada |
 |---|---|---|
-| `categoria` | N:1 | `Categoría` |
+| `categoria` | N:1 | `Categoria` |
 | `inventario` | 1:1 | `Inventario` |
 | `imagenes` | 1:N | `Imagen` |
 
 ---
 
-### 3.5 Categoría
+### 3.5 Categoria
 
 **Descripción:** Clasificación jerárquica de productos que organiza el catálogo.
 

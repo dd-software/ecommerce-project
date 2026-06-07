@@ -268,7 +268,7 @@ El sistema de grilla se basa en el grid de Bootstrap 5.3 (12 columnas).
 
 ## 5. Iconografía
 
-- **Librería:** Bootstrap Icons 1.11 (incluida con Bootstrap 5.3).
+- **Librería:** Bootstrap Icons 1.11 (dependencia separada; **no** se incluye automáticamente con Bootstrap 5.3.8 y debe agregarse explícitamente como asset independiente via CDN o paquete npm `bootstrap-icons`).
 - **Tamaño estándar:** 20px en navegación y botones; 16px en inputs; 24px en encabezados.
 - **Color:** Hereda del color de texto del elemento contenedor, salvo especificación explícita.
 - **Uso decorativo vs. semántico:** Los íconos decorativos llevan `aria-hidden="true"`; los semánticos llevan `aria-label` descriptivo.
@@ -306,7 +306,7 @@ El sistema de grilla se basa en el grid de Bootstrap 5.3 (12 columnas).
 
 ### 8.1 Uso de Clases de Bootstrap vs. Tokens
 
-- Se usan las clases de Bootstrap 5.3 como punto de partida; se sobreescriben con los tokens CSS definidos en `:root` cuando los valores de Bootstrap no coincidan con el Design System.
+- Se usan las clases de Bootstrap 5.3.8 como punto de partida; se sobreescriben con los tokens CSS definidos en `:root` cuando los valores de Bootstrap no coincidan con el Design System.
 - No se permite modificar el `_variables.scss` de Bootstrap directamente; se usan variables CSS personalizadas en una hoja de estilos separada (`design-tokens.css`).
 
 ### 8.2 Archivo de Tokens
@@ -316,6 +316,8 @@ Todos los tokens definidos en este documento se declaran en:
 ```
 src/styles/design-tokens.css
 ```
+
+> **Nota:** esta ruta es la propuesta dentro del repositorio frontend donde vivirá la implementación de la UI. Este repositorio de documentación no contiene código fuente; la ruta `src/` no existe aquí.
 
 Este archivo se importa globalmente antes que cualquier otro stylesheet y nunca se modifica por componente.
 

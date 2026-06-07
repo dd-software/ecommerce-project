@@ -37,3 +37,6 @@ Todas las contraseñas de usuario deben almacenarse en la base de datos utilizan
 
 ## RN-013 - Alerta de stock configurable por producto.
 El sistema debe permitir configurar un umbral mínimo de stock de forma individual por producto (ej: 3 unidades para un producto A, 10 para producto B). Cuando el stock caiga por debajo de ese umbral, se mostrará una alerta visible en el dashboard del administrador y supervisor.
+
+## RN-014 - Solo Supervisor y Admin modifican stock.
+La modificación directa del stock de cualquier producto (incrementar o disminuir manualmente) solo puede ser realizada por usuarios con rol "Supervisor" o "Admin". Ni Clientes ni Empleados tienen permisos para esta acción.

@@ -27,3 +27,10 @@ Si un producto en el carrito queda sin stock disponible (por ejemplo, porque otr
 
 ## RN-009 - Sesión no persiste al cerrar el navegador.
 La sesión de usuario no debe ser persistente. Se usará almacenamiento de sesión (sessionStorage) o cookies sin expiración larga. Al cerrar el navegador, el usuario deberá volver a iniciar sesión obligatoriamente.
+
+## RN-010
+
+## RN-011
+
+## RN-012 - Contraseña almacenada hasheada.
+Todas las contraseñas de usuario deben almacenarse en la base de datos utilizando un algoritmo de hashing seguro (ej: password_hash() de PHP con BCRYPT o Argon2). Nunca se almacenarán en texto plano.

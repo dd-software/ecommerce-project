@@ -24,3 +24,6 @@ Cuando un usuario anónimo con productos en el carrito inicie sesión, el sistem
 
 ## RN-008 - Carrito con producto sin stock.
 Si un producto en el carrito queda sin stock disponible (por ejemplo, porque otro usuario compró la última unidad), el sistema debe marcar dicho producto como "no disponible" en el carrito y notificar al usuario al intentar proceder al checkout.
+
+## RN-009 - Sesión no persiste al cerrar el navegador.
+La sesión de usuario no debe ser persistente. Se usará almacenamiento de sesión (sessionStorage) o cookies sin expiración larga. Al cerrar el navegador, el usuario deberá volver a iniciar sesión obligatoriamente.

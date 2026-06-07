@@ -18,3 +18,6 @@ Cada compra registrada debe contar con un historial de estados mínimos: "pendie
 
 ## RN-006 - Carrito persiste al cerrar el navegador.
 El carrito de compras debe almacenarse en el navegador (localStorage o IndexedDB), no en sesiones del servidor. Esto garantiza que al cerrar y reabrir el navegador, los productos sigan en el carrito sin necesidad de iniciar sesión.
+
+## RN-007 - Comportamiento del carrito al iniciar sesión.
+Cuando un usuario anónimo con productos en el carrito inicie sesión, el sistema debe fusionar el carrito local con el carrito del usuario almacenado en la base de datos (si existe), priorizando cantidades actualizadas y evitando duplicados.

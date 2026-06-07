@@ -40,3 +40,6 @@ El sistema debe permitir configurar un umbral mínimo de stock de forma individu
 
 ## RN-014 - Solo Supervisor y Admin modifican stock.
 La modificación directa del stock de cualquier producto (incrementar o disminuir manualmente) solo puede ser realizada por usuarios con rol "Supervisor" o "Admin". Ni Clientes ni Empleados tienen permisos para esta acción.
+
+## RN-015 - Producto con stock 0 no se puede agregar al carrito.
+El sistema debe impedir que un usuario (registrado o invitado) agregue al carrito cualquier producto cuyo stock actual sea 0. El botón de "agregar al carrito" debe deshabilitarse o mostrar un mensaje de "sin stock disponible"

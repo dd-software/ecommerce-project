@@ -10,5 +10,7 @@ El dashboard de administración solo estará disponible para usuarios con rol "a
 ## RN-003 El stock se descuenta tras confirmar pago.
 La reducción del inventario ocurre únicamente después de recibir la confirmación exitosa del pago (ej: respuesta positiva de Transbank de prueba). No se descuenta stock al agregar productos al carrito ni al iniciar checkout.
 
-RN-004 Usuarios deshabilitados no pueden iniciar sesión.
+## RN-004 Usuarios deshabilitados no pueden iniciar sesión.
+Si un usuario ha sido marcado como "deshabilitado" en la base de datos (por ejemplo, por inactividad o sanción), el sistema debe rechazar su intento de autenticación mostrando un mensaje genérico de "usuario o contraseña incorrectos".
+
 RN-005 Todo pedido debe tener trazabilidad de estados.

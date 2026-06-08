@@ -105,6 +105,7 @@
 4. Hace clic en “Iniciar sesión”
 5. El sistema valida las credenciales
 6. El sistema verifica el estado del usuario
+7. Acceso denegado, mensaje visible "Tu cuenta ha sido deshabilitada, contacta al administrador".
 
 ---
 

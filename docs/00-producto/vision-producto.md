@@ -19,7 +19,6 @@ Objetivos Medibles
 Incrementar las ventas en un 20% durante los primeros 6 meses.
 Reducir en un 50% la gestión manual de pedidos.
 Permitir que el 100% de los productos estén disponibles para consulta en línea.
-Lograr que al menos el 70% de los pedidos se realicen a través de la plataforma.
 Mantener una disponibilidad del sistema superior al 99%.
 ## Usuarios
 -Roles del Sistema
@@ -31,6 +30,7 @@ Puede:
 
 Navegar por el catálogo de productos.
 Buscar y visualizar información de productos.
+Agregar productos al carrito, pero no puede finalizar una compra sin identificarse
 Registrarse o iniciar sesión en la plataforma.
 2. Cliente
 
@@ -59,7 +59,8 @@ Usuario responsable de supervisar la operación del e-commerce.
 Puede:
 
 Monitorear pedidos y actividades de los empleados.
-Gestionar inventario y productos.
+Gestionar inventario y productos(Puede agregar, editar y
+eliminar productos, y modificar precios).
 Generar y revisar reportes operativos.
 Resolver incidencias relacionadas con pedidos y ventas.
 5. Administrador (Admin)
@@ -78,13 +79,12 @@ Supervisar y mantener la seguridad y funcionamiento de la plataforma.
 ## Objetivo del Sistema 
 
 Objetivo:
-Permitir que el Cliente realice una compra completa a través de la plataforma de e-commerce, desde la selección de productos hasta la confirmación del pedido, logrando que al menos el 70% de las ventas mensuales se realicen mediante el canal online durante los primeros 12 meses de operación.
+Permitir que el Cliente realice una compra completa a través de la plataforma de e-commerce, desde la selección de productos hasta la confirmación del pedido.
 
 Criterio de éxito:
 
 El cliente puede buscar productos, agregarlos al carrito y finalizar la compra sin intervención manual.
 El pedido queda registrado correctamente en el sistema.
-El porcentaje de ventas realizadas a través de la plataforma alcanza o supera el 70% del total de ventas mensuales.
 
 Rol responsable: Cliente.
 

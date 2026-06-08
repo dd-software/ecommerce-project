@@ -72,3 +72,56 @@
    * Admin / Supervisor / Empleado → **Dashboard**
    * Cliente → **Página principal**
 
+## CP-003 Compra con producto sin stock.
+
+**Precondiciones:**
+
+* Existe un producto en el catálogo con stock igual a 0
+* El usuario se encuentra en el catálogo 
+
+**Pasos:**
+
+1. El usuario navega al catálogo de productos
+2. Identifica un producto sin stock disponible
+3. Intenta hacer clic en “Agregar al carrito”
+4. El sistema valida el stock del producto
+5. El sistema bloquea la acción de agregar al carrito
+
+---
+
+## CP-004 Login con usuario deshabilitado.
+
+**Precondiciones:**
+
+* Existe un usuario registrado en el sistema
+* El usuario tiene estado "deshabilitado"
+* El sistema de autenticación está operativo
+
+**Pasos:**
+
+1. El usuario accede a la página de inicio de sesión
+2. Ingresa su correo electrónico
+3. Ingresa su contraseña
+4. Hace clic en “Iniciar sesión”
+5. El sistema valida las credenciales
+6. El sistema verifica el estado del usuario
+
+---
+
+## CP-005 Cambio de estado de pedido.
+
+**Precondiciones:**
+
+* Existe un pedido registrado en el sistema
+* El pedido tiene estado inicial "pendiente"
+* Existe un usuario con rol admin o supervisor autenticado
+
+**Pasos:**
+
+1. El usuario accede al dashboard
+2. Navega a la gestión de pedidos
+3. Selecciona un pedido existente
+4. Cambia el estado del pedido 
+5. Guarda los cambios
+6. Repite el proceso para los siguientes estados 
+7. El sistema registra cada cambio realizado

@@ -29,8 +29,11 @@ Si un producto en el carrito queda sin stock disponible (por ejemplo, porque otr
 La sesión de usuario no debe ser persistente. Se usará almacenamiento de sesión (sessionStorage) o cookies sin expiración larga. Al cerrar el navegador, el usuario deberá volver a iniciar sesión obligatoriamente.
 
 ## RN-010
+El sistema debe permitir que usuarios anónimos puedan visualizar el catálogo, agregar productos al carrito y realizar compras como invitado. Sin embargo, funcionalidades como historial de compras, lista de deseos y acceso al dashboard requieren autenticación. Si un usuario intenta acceder a estas funciones, debe ser redirigido a la página de inicio de sesión o registro.
+
 
 ## RN-011
+El sistema debe aceptar únicamente correos electrónicos con formato válido pertenecientes a dominios como gmail.com, hotmail.com, outlook.com y dominios corporativos. Se deben rechazar correos con formato incorrecto o incompleto, mostrando un mensaje de error al usuario.
 
 ## RN-012 - Contraseña almacenada hasheada.
 Todas las contraseñas de usuario deben almacenarse en la base de datos utilizando un algoritmo de hashing seguro (ej: password_hash() de PHP con BCRYPT o Argon2). Nunca se almacenarán en texto plano.

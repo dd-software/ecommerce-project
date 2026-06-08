@@ -53,7 +53,7 @@ requerir información adicional.
 ### Flujo Principal — Redacción y aprobación de especificación SDD
 
 1. Desarrollador recibe componente asignado
-2. Desarrollador lee vision-producto.md y reglas-negocio.md
+2. Desarrollador lee `vision-producto.md` y `reglas-negocio.md`
 3. Desarrollador revisa el contrato API correspondiente en 03-contratos-api/
 4. Desarrollador redacta el archivo .md siguiendo las 11 secciones obligatorias
 5. Desarrollador crea branch feature/sdd-[nombre-componente]
@@ -109,21 +109,27 @@ Seccion
 ## 9. Restricciones, Validaciones y Dependencias
 
 ### Restricciones
-- El archivo debe estar en formato Markdown (`.md`).
-- El nombre del archivo debe coincidir con el componente documentado.
-- No se puede iniciar implementación sin especificación en estado `aprobado`.
+
+* El archivo debe estar en formato Markdown (`.md`).
+* El nombre del archivo debe coincidir con el componente documentado.
+* No se puede iniciar implementación sin especificación en estado aprobado.
 
 ### Validaciones
-- Todas las secciones obligatorias deben estar presentes y no vacías.
-- Los identificadores de reglas de negocio no pueden repetirse entre secciones.
-- Los actores mencionados deben pertenecer al conjunto: Visitante, Cliente, Administrador, Sistema.
+
+* Todas las secciones obligatorias deben estar presentes y no vacías.
+* Los identificadores de reglas de negocio no pueden repetirse entre secciones.
+* Los actores mencionados deben corresponder a actores válidos definidos para el componente documentado.
+* Toda referencia a componentes, APIs o módulos debe existir dentro del repositorio del proyecto.
+* Las reglas de negocio deben ser consistentes con las reglas globales definidas en `00-producto/reglas-negocio.md`.
 
 ### Dependencias
-- `00-producto/vision-producto.md`
-- `00-producto/reglas-negocio.md`
-- `01-arquitectura/arquitectura-general.md`
-- `03-contratos-api/*.yaml`
-- `09-gestion/workflow-git.md`
+
+* `00-producto/vision-producto.md`
+* `00-producto/reglas-negocio.md`
+* `01-arquitectura/arquitectura-general.md`
+* `03-contratos-api/*.yaml`
+* `09-gestion/workflow-git.md`
+
 
 ## 10. Criterios de Aceptación
 

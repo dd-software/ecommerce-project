@@ -10,189 +10,172 @@
 
 ## Objetivo
 
-Definir la estrategia, alcance, casos de prueba y criterios de validación para garantizar la calidad, integridad y correcto funcionamiento del proceso de checkout.
+Validar el correcto funcionamiento del módulo de checkout mediante pruebas unitarias, integración y aceptación, garantizando la calidad del proceso de compra antes de la ejecución del pago.
 
 ---
 
-# Alcance de Pruebas
+# Estrategia de Pruebas
 
-Las pruebas cubren:
-
-* Inicio del checkout.
-* Recuperación de productos desde el carrito.
-* Validación de inventario.
-* Cálculo de totales.
-* Validación de información de entrega.
-* Generación de órdenes.
-* Integración con pagos.
-* API de checkout.
-* Seguridad.
-* Rendimiento.
-* Auditoría.
-
----
-
-# Estrategia de Testing
-
-| Tipo de Prueba | Objetivo                             |
-| -------------- | ------------------------------------ |
-| Unitarias      | Validar componentes individuales     |
-| Integración    | Verificar interacción entre módulos  |
-| Funcionales    | Validar reglas de negocio            |
-| Aceptación     | Confirmar cumplimiento de requisitos |
-| Seguridad      | Validar controles de protección      |
-| Rendimiento    | Medir comportamiento bajo carga      |
+| Tipo de Prueba | Objetivo                                        |
+| -------------- | ----------------------------------------------- |
+| Unitarias      | Validar componentes individuales                |
+| Integración    | Verificar interacción entre módulos             |
+| Aceptación     | Confirmar cumplimiento de requisitos de negocio |
 
 ---
 
 # Pruebas Unitarias
 
-## Objetivo
+## UT-CHK-001 Validación de Carrito
 
-Validar el correcto funcionamiento de cada componente del módulo.
+### Objetivo
 
-### UT-CHK-001 Recuperación de Carrito
+Verificar que el sistema recupere correctamente los productos del carrito.
 
-**Descripción**
+### Precondiciones
 
-Validar la obtención de productos desde el carrito activo.
+* Existe un carrito activo.
 
-**Resultado Esperado**
+### Resultado Esperado
 
-* Lista de productos recuperada correctamente.
-* Cantidades válidas.
-
----
-
-### UT-CHK-002 Validación de Inventario
-
-**Descripción**
-
-Verificar la validación de stock disponible.
-
-**Resultado Esperado**
-
-* Confirmación correcta cuando existe stock.
-* Rechazo cuando el stock es insuficiente.
+* Se obtiene la lista correcta de productos.
+* Se recuperan cantidades válidas.
 
 ---
 
-### UT-CHK-003 Cálculo de Totales
+## UT-CHK-002 Validación de Inventario
 
-**Descripción**
+### Objetivo
 
-Validar cálculos de subtotal, impuestos y total.
+Verificar la disponibilidad de stock.
 
-**Resultado Esperado**
+### Resultado Esperado
 
-* Montos calculados correctamente.
-
----
-
-### UT-CHK-004 Validación de Datos de Entrega
-
-**Descripción**
-
-Verificar validaciones de campos obligatorios y formatos.
-
-**Resultado Esperado**
-
-* Datos válidos aceptados.
-* Datos inválidos rechazados.
+* El sistema confirma disponibilidad cuando existe stock.
+* El sistema rechaza productos sin stock.
 
 ---
 
-### UT-CHK-005 Generación de Orden
+## UT-CHK-003 Cálculo de Totales
 
-**Descripción**
+### Objetivo
 
-Validar la creación de una orden preliminar.
+Validar el cálculo de montos.
 
-**Resultado Esperado**
+### Casos
 
-* Orden creada correctamente.
-* Estado inicial asignado.
+* Subtotal.
+* Impuestos.
+* Descuentos.
+* Costos de envío.
+* Total final.
+
+### Resultado Esperado
+
+* Los cálculos son correctos.
 
 ---
 
-### UT-CHK-006 Registro de Auditoría
+## UT-CHK-004 Validación de Datos de Entrega
 
-**Descripción**
+### Objetivo
 
-Verificar el registro de eventos relevantes.
+Validar los datos ingresados por el usuario.
 
-**Resultado Esperado**
+### Resultado Esperado
 
-* Eventos almacenados correctamente.
+* Se aceptan datos válidos.
+* Se rechazan datos inválidos.
+
+---
+
+## UT-CHK-005 Generación de Orden
+
+### Objetivo
+
+Verificar la creación de la orden preliminar.
+
+### Resultado Esperado
+
+* Se genera una orden válida.
+* Se asigna estado inicial correctamente.
+
+---
+
+## UT-CHK-006 Auditoría
+
+### Objetivo
+
+Validar el registro de eventos.
+
+### Resultado Esperado
+
+* Los eventos quedan almacenados correctamente.
 
 ---
 
 # Pruebas de Integración
 
-## Objetivo
+## IT-CHK-001 Integración con Carrito
 
-Validar la interacción entre checkout y sistemas dependientes.
+### Objetivo
 
-### IT-CHK-001 Integración con Carrito
+Verificar la comunicación con el módulo de carrito.
 
-**Descripción**
+### Resultado Esperado
 
-Validar recuperación de productos desde el módulo de carrito.
-
-**Resultado Esperado**
-
-* Productos obtenidos correctamente.
-* Datos consistentes.
+* Recuperación correcta de productos.
+* Consistencia de información.
 
 ---
 
-### IT-CHK-002 Integración con Inventario
+## IT-CHK-002 Integración con Inventario
 
-**Descripción**
+### Objetivo
 
 Validar consulta de disponibilidad de stock.
 
-**Resultado Esperado**
+### Resultado Esperado
 
-* Inventario sincronizado.
-* Disponibilidad correcta.
+* Información sincronizada.
+* Validación correcta de existencias.
 
 ---
 
-### IT-CHK-003 Integración con Pagos
+## IT-CHK-003 Integración con Pagos
 
-**Descripción**
+### Objetivo
 
-Validar transferencia de información al módulo de pagos.
+Validar transferencia de información hacia el módulo de pagos.
 
-**Resultado Esperado**
+### Resultado Esperado
 
-* Orden enviada correctamente.
+* Orden preparada correctamente.
 * Totales consistentes.
 
 ---
 
-### IT-CHK-004 Integración con Auditoría
+## IT-CHK-004 Integración con Auditoría
 
-**Descripción**
+### Objetivo
 
 Validar registro de eventos de checkout.
 
-**Resultado Esperado**
+### Resultado Esperado
 
 * Eventos registrados correctamente.
 
 ---
 
-### IT-CHK-005 Endpoint de Verificación
+## IT-CHK-005 Verificación del Contrato API
 
-**Endpoint**
+### Endpoint
 
 ```http
 GET /api/checkout
 ```
 
-**Resultado Esperado**
+### Respuesta Esperada
 
 ```json
 {
@@ -200,234 +183,144 @@ GET /api/checkout
 }
 ```
 
-**Validaciones**
+### Validaciones
 
-* HTTP 200.
-* JSON válido.
+* Código HTTP 200.
+* Respuesta JSON válida.
 * Cumplimiento del contrato API.
 
 ---
 
-### IT-CHK-006 Error de Dependencias
+## IT-CHK-006 Manejo de Dependencias
 
-**Descripción**
+### Objetivo
 
-Simular indisponibilidad de inventario o pagos.
+Validar comportamiento ante fallos de servicios externos.
 
-**Resultado Esperado**
+### Resultado Esperado
 
 * Error controlado.
 * Registro del incidente.
-* No se generan órdenes inconsistentes.
-
----
-
-# Pruebas Funcionales
-
-## FT-CHK-001 Inicio de Checkout
-
-**Escenario**
-
-Usuario con productos en carrito.
-
-**Resultado Esperado**
-
-* El checkout inicia correctamente.
-
----
-
-## FT-CHK-002 Producto Sin Stock
-
-**Escenario**
-
-Producto con inventario insuficiente.
-
-**Resultado Esperado**
-
-* El sistema impide continuar.
-
----
-
-## FT-CHK-003 Información de Entrega Inválida
-
-**Escenario**
-
-Dirección incompleta o incorrecta.
-
-**Resultado Esperado**
-
-* Se muestran errores de validación.
-
----
-
-## FT-CHK-004 Generación Exitosa de Orden
-
-**Escenario**
-
-Todos los datos son válidos.
-
-**Resultado Esperado**
-
-* Orden generada exitosamente.
+* Sin pérdida de información.
 
 ---
 
 # Pruebas de Aceptación
 
-## Objetivo
+## AT-CHK-001 Checkout Exitoso
 
-Verificar que el módulo satisface las necesidades del negocio.
+### Dado
 
-### AT-CHK-001 Finalización Correcta del Checkout
+Un usuario autenticado con productos en el carrito.
 
-**Dado** un usuario autenticado
+### Cuando
 
-**Y** productos disponibles en el carrito
+Inicia el proceso de checkout.
 
-**Cuando** inicia el checkout
+### Entonces
 
-**Entonces** el sistema genera una orden válida.
-
----
-
-### AT-CHK-002 Inventario Insuficiente
-
-**Dado** un producto sin stock
-
-**Cuando** el usuario intenta finalizar la compra
-
-**Entonces** el sistema bloquea el proceso.
+Se genera una orden válida.
 
 ---
 
-### AT-CHK-003 Validación de Datos
+## AT-CHK-002 Producto Sin Inventario
 
-**Dado** información de entrega incorrecta
+### Dado
 
-**Cuando** el usuario intenta continuar
+Un producto sin stock disponible.
 
-**Entonces** el sistema solicita correcciones.
+### Cuando
 
----
+El usuario intenta continuar.
 
-### AT-CHK-004 Integración con Pagos
+### Entonces
 
-**Dado** una orden válida
-
-**Cuando** finaliza el checkout
-
-**Entonces** la orden queda lista para el procesamiento del pago.
+El sistema bloquea la operación e informa el problema.
 
 ---
 
-# Pruebas de Seguridad
+## AT-CHK-003 Datos de Entrega Inválidos
 
-## ST-CHK-001 Comunicación Segura
+### Dado
 
-**Validación**
+Información de entrega incorrecta.
 
-* Uso obligatorio de HTTPS.
+### Cuando
 
----
+El usuario intenta finalizar el checkout.
 
-## ST-CHK-002 Validación de Entradas
+### Entonces
 
-**Validación**
-
-* Rechazo de datos inválidos.
-* Prevención de manipulación de parámetros.
+El sistema solicita correcciones.
 
 ---
 
-## ST-CHK-003 Protección de Información
+## AT-CHK-004 Preparación para Pago
 
-**Validación**
+### Dado
 
-* No exposición de datos sensibles.
-* Gestión segura de errores.
+Una orden válida.
 
----
+### Cuando
 
-## ST-CHK-004 Integridad de Montos
+El checkout finaliza exitosamente.
 
-**Validación**
+### Entonces
 
-* Los montos son recalculados del lado servidor.
-* No se aceptan precios manipulados.
+La orden queda disponible para el módulo de pagos.
 
 ---
 
-## ST-CHK-005 Auditoría
+# Casos de Prueba Resumidos
 
-**Validación**
-
-* Registro de operaciones críticas.
-* Trazabilidad completa de eventos.
-
----
-
-# Pruebas de Rendimiento
-
-## PT-CHK-001 Tiempo de Respuesta
-
-**Escenario**
-
-100 usuarios concurrentes.
-
-**Resultado Esperado**
-
-* Tiempo promedio menor a 2 segundos.
+| ID         | Tipo        | Descripción                |
+| ---------- | ----------- | -------------------------- |
+| UT-CHK-001 | Unitaria    | Recuperación de carrito    |
+| UT-CHK-002 | Unitaria    | Validación de inventario   |
+| UT-CHK-003 | Unitaria    | Cálculo de totales         |
+| UT-CHK-004 | Unitaria    | Validación de entrega      |
+| UT-CHK-005 | Unitaria    | Generación de orden        |
+| IT-CHK-001 | Integración | Integración con carrito    |
+| IT-CHK-002 | Integración | Integración con inventario |
+| IT-CHK-003 | Integración | Integración con pagos      |
+| IT-CHK-005 | Integración | Contrato API               |
+| AT-CHK-001 | Aceptación  | Checkout exitoso           |
+| AT-CHK-002 | Aceptación  | Inventario insuficiente    |
+| AT-CHK-003 | Aceptación  | Datos inválidos            |
+| AT-CHK-004 | Aceptación  | Preparación para pago      |
 
 ---
 
-## PT-CHK-002 Disponibilidad
+# Cobertura Esperada
 
-**Escenario**
-
-Operación continua durante una hora.
-
-**Resultado Esperado**
-
-* Disponibilidad superior al 99%.
-
----
-
-## PT-CHK-003 Concurrencia de Inventario
-
-**Escenario**
-
-Múltiples usuarios compran el mismo producto simultáneamente.
-
-**Resultado Esperado**
-
-* No se produce sobreventa.
-* Se mantiene consistencia del stock.
+| Área                   | Cobertura Mínima |
+| ---------------------- | ---------------- |
+| Lógica de negocio      | 80%              |
+| Servicios              | 80%              |
+| Validaciones           | 90%              |
+| Integraciones críticas | 100%             |
 
 ---
 
 # Criterios de Éxito
 
-Las pruebas serán consideradas satisfactorias cuando:
-
-* [ ] 100% de las pruebas unitarias sean exitosas.
-* [ ] 100% de las pruebas de integración sean exitosas.
-* [ ] 100% de las pruebas funcionales sean exitosas.
-* [ ] 100% de las pruebas de aceptación sean exitosas.
-* [ ] No existan defectos críticos abiertos.
-* [ ] Los requisitos de seguridad sean aprobados.
-* [ ] Los requisitos de rendimiento sean cumplidos.
+* [ ] Todas las pruebas unitarias aprobadas.
+* [ ] Todas las pruebas de integración aprobadas.
+* [ ] Todas las pruebas de aceptación aprobadas.
+* [ ] Sin defectos críticos abiertos.
+* [ ] Cumplimiento del contrato API.
+* [ ] Integración exitosa con inventario y pagos.
+* [ ] Evidencias de pruebas documentadas.
 
 ---
 
 # Evidencias Requeridas
 
-* Reportes de pruebas unitarias.
-* Resultados de integración.
-* Evidencias funcionales.
-* Evidencias de aceptación.
-* Reportes de seguridad.
-* Resultados de rendimiento.
-* Registro de incidencias detectadas.
+* Reportes de ejecución.
+* Logs de pruebas.
+* Evidencias de integración.
+* Resultados de cobertura.
+* Registro de incidencias.
 
 ---
 
@@ -446,18 +339,7 @@ Las pruebas serán consideradas satisfactorias cuando:
 
 ---
 
-# Aprobación
-
-| Rol                    | Estado    |
-| ---------------------- | --------- |
-| QA                     | Pendiente |
-| Líder Técnico          | Pendiente |
-| Arquitecto de Software | Pendiente |
-| Product Owner          | Pendiente |
-
----
-
-# Estado del Plan
+# Estado
 
 **Versión:** 1.0
 

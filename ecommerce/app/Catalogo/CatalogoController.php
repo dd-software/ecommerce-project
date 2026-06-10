@@ -157,7 +157,8 @@ class CatalogoController
 
     private function renderCatalogo(array $productos, array $categorias, int $page, int $totalPages, int $total): void
     {
-        $isAuthenticated = (new \App\Core\Session())->isAuthenticated();
+        $session = \App\Core\Session::getInstance();
+        $isAuthenticated = $session->isAuthenticated();
         $cartCount = 0;
         if ($isAuthenticated) {
             $cart = $this->db->queryOne(
@@ -330,7 +331,8 @@ class CatalogoController
 
     private function renderDetalle(array $producto, array $imagenes, array $relacionados): void
     {
-        $isAuthenticated = (new \App\Core\Session())->isAuthenticated();
+        $session = \App\Core\Session::getInstance();
+        $isAuthenticated = $session->isAuthenticated();
         ?><!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
 <head>

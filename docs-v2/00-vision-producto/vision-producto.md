@@ -1,10 +1,12 @@
-# Visión del Producto
+# Visión del Producto — Ecommerce UCT
 
 ## 🎯 Propósito del Proyecto
 
-Este documento define la visión del producto **Plataforma Ecommerce UCT**. Sirve como guía maestra para que todos los equipos de desarrollo comprendan **qué** se construye y **por qué**. Cualquier decisión técnica debe alinearse con la visión aquí descrita.
-Este proyecto es con fines pedagógicos, por lo tanto es un ejercicio didáctico y el eje central es que los estudiantes aprendan a trabajar de forma 
-colaborativa usando giuthub, notion, jira, además permitirá obtener como resultado una plataforma ecommerce con gestión de inventaio y pasarela de pagos paypal. Usando HTML5, CSS3, javascript, Jquery, JSON, PHP y MYSQL.
+Este documento define la visión del producto **Plataforma Ecommerce UCT**, un proyecto pedagógico de la asignatura Diseño y Desarrollo de Software + IA. Sirve como guía maestra para que los 5 equipos de desarrollo comprendan **qué** se construye y **por qué**.
+
+**Objetivo pedagógico:** Que los estudiantes aprendan trabajo colaborativo usando GitHub, desarrollando una plataforma ecommerce funcional con gestión de inventario y pasarela de pagos PayPal.
+
+**Stack:** HTML5, CSS3, Bootstrap 5.3, JavaScript, jQuery, JSON, PHP, MySQL.
 
 ---
 
@@ -25,18 +27,25 @@ Las soluciones existentes son caras (Mercado Shops, Shopify), complejas (Magento
 
 Una plataforma **web ecommerce autogestionable** donde:
 
-| Para el cliente | Para el administrador |
-|----------------|----------------------|
-| Navegar catálogo con fotos y precios | Dashboard con métricas |
-| Agregar productos al carrito | CRUD de productos y categorías |
-| Comprar con PayPal | Gestionar stock |
-| Ver historial de pedidos | Ver pedidos y cambiar estados |
-| Recibir confirmaciones | Configurar tienda |
-| Registrarse e iniciar sesión | Ver reportes de ventas |
+**Para el cliente:**
+- Navegar catálogo con fotos y precios
+- Agregar productos al carrito
+- Comprar con PayPal (sandbox)
+- Ver historial de pedidos
+- Registrarse e iniciar sesión
+
+**Para el administrador:**
+- Dashboard con métricas (ventas, productos, pedidos)
+- CRUD de productos y categorías
+- Gestionar stock e inventario
+- Ver pedidos y cambiar estados
+- Ver reportes de ventas
 
 ---
 
 ## 3. Usuarios y Roles
+
+Solo **2 roles**: Cliente y Administrador.
 
 ### 👤 Visitante (No registrado)
 - Navega el catálogo de productos
@@ -44,60 +53,51 @@ Una plataforma **web ecommerce autogestionable** donde:
 - Agrega productos a carrito local (se pierde al cerrar sesión)
 
 ### 👤 Cliente (Registrado)
-- Todo lo del visitante +
-- Carrito persistente en servidor
+- Todo lo del visitante
+- Carrito persistente en servidor (sesión PHP)
 - Realiza compras completas con PayPal
-- Ve historial de pedidos
-- Gestiona su perfil y direcciones
+- Ve su historial de pedidos
 
 ### 👤 Administrador
 - Acceso total al sistema
-- Gestión de usuarios y roles
-- Configuración global (IVA, envío, moneda)
-- Auditoría y logs
-- Modo mantenimiento
+- CRUD de productos, categorías e inventario
+- Gestión de pedidos (cambiar estados)
+- Dashboard con reportes y métricas
 
 ---
 
 ## 4. Objetivos Específicos
 
-| ID | Objetivo | Módulo | Prioridad |
-|----|----------|--------|-----------|
-| OBJ-01 | Explorar catálogo con filtros y búsqueda | A - Catálogo | 🔴 Crítica |
-| OBJ-02 | Agregar/quitar productos del carrito | B - Carrito | 🔴 Crítica |
-| OBJ-03 | Registrarse e iniciar sesión (sólo clientes) | C - Auth | 🔴 Crítica |
-| OBJ-04 | Realizar checkout completo | D - Checkout | 🔴 Crítica |
-| OBJ-05 | Pagar con PayPal (sandbox) | E - PayPal | 🔴 Crítica |
-| OBJ-06 | Gestionar inventario con reservas | F - Inventario | 🔴 Crítica |
-| OBJ-07 | Administrar toda la plataforma | G - Admin | 🟡 Alta |
-| OBJ-08 | Orquestar flujo completo de compra | H - Integración | 🟡 Alta |
-| OBJ-10 | Reportes | G - Admin | 🟢 Media |
+- **OBJ-01** — Explorar catálogo con filtros y búsqueda — Módulo A (Catálogo) — 🔴 Crítica
+- **OBJ-02** — Agregar/quitar productos del carrito — Módulo B (Carrito) — 🔴 Crítica
+- **OBJ-03** — Registrarse e iniciar sesión (solo clientes) — Módulo C (Auth) — 🔴 Crítica
+- **OBJ-04** — Realizar checkout completo — Módulo D (Checkout) — 🔴 Crítica
+- **OBJ-05** — Pagar con PayPal (sandbox) — Módulo E (PayPal) — 🔴 Crítica
+- **OBJ-06** — Gestionar inventario con reservas (10 min) — Módulo F (Inventario) — 🔴 Crítica
+- **OBJ-07** — Administrar toda la plataforma — Módulo G (Admin) — 🟡 Alta
+- **OBJ-08** — Orquestar flujo completo de compra — Módulo H (Integración) — 🟡 Alta
 
 ---
 
 ## 5. KPIs de Éxito (para estudiantes)
 
-| KPI | Meta | Cómo medirlo |
-|-----|------|-------------|
-| Cobertura de especificaciones | 100% de endpoints implementados | Revisión contra contratos API |
-| Flujo de compra completo | Registrar pedido → PayPal → confirmar → descontar stock | Prueba manual E2E |
-| Sin bugs críticos | 0 bugs de seguridad o corrupción de datos | Checklist de code review |
-| Código legible | Nombres claros, comentarios, PSR-4 | Peer review entre equipos |
-| Tests funcionales | Al menos 1 test por endpoint | Carpeta `tests/` con PHPUnit |
+- **Cobertura de especificaciones:** 100% de funcionalidades implementadas (checklist interno)
+- **Flujo de compra completo:** Registrar pedido → PayPal → confirmar → descontar stock (prueba E2E)
+- **Sin bugs críticos:** 0 bugs de seguridad o corrupción de datos (code review)
+- **Código legible:** Nombres claros, comentarios pedagógicos, estructura consistente (peer review)
 
 ---
 
 ## 6. Alcance — Lo que SÍ incluye
 
-- Catálogo de productos con nombre del preoducto, descripción breve, imágenes, categorías y precios
-- Carrito de compras persistente (servidor) y temporal (localStorage)
-- Autenticación con roles (admin, cliente)
-- Checkout con selección de dirección y resumen
+- Catálogo de productos con nombre, descripción, imágenes, categorías y precios
+- Carrito de compras (servidor con sesión + localStorage para invitados)
+- Autenticación con roles: admin y cliente
+- Checkout con resumen de compra
 - Pago mediante PayPal (sandbox — sin dinero real)
-- Gestión de inventario con reservas (10 min de expiración)
-- Panel administrativo con dashboard, usuarios, pedidos, auditoría
-- Trazabilidad completa (auditoría de todas las operaciones)
-- Seguridad: CSRF token, sesiones seguras
+- Gestión de inventario con reservas temporales (10 min de expiración)
+- Panel administrativo con dashboard, gestión de productos, pedidos
+- Seguridad: CSRF tokens, sesiones PHP seguras (HttpOnly, SameSite)
 
 ## 7. Alcance — Lo que NO incluye (futuras versiones)
 
@@ -107,7 +107,5 @@ Una plataforma **web ecommerce autogestionable** donde:
 - ⏳ Notificaciones push
 - ⏳ App móvil nativa
 - ⏳ Multi-idioma
-- ⏳ Dropshipping
 - ⏳ Pasarelas adicionales (Webpay, MercadoPago, Transbank)
 - ⏳ Facturación electrónica (SII)
-- ⏳ Bodega física / múltiples ubicaciones

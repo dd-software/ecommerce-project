@@ -10,12 +10,12 @@ Repositorio documental maestro del proyecto **Ecommerce UCT**, plataforma educat
 | `01-reglas-negocio/` | Reglas de negocio y validaciones | Todos |
 | `02-arquitectura/` | Arquitectura general y stack tecnológico | Todos |
 | `03-modelo-dominio/` | Modelo de dominio (entidades y relaciones) | Todos |
-| `04-contratos-api/` | Contratos API (endpoints PHP planos) | Equipos A-D |
-| `05-diseno-bd/` | Esquema de base de datos MySQL | Equipo F |
-| `06-seguridad/` | Especificación de seguridad | Equipo C |
-| `07-pasarela-pago/` | Integración con PayPal (sandbox) | Equipo E |
-| `08-inventario/` | Gestión de inventario con reservas | Equipo F |
-| `09-flujos/` | Flujo de compra completo | Equipo H |
+| `04-contratos-api/` | Contratos API (endpoints PHP planos) | Los Chupa, Tareasmiranda |
+| `05-diseno-bd/` | Esquema de base de datos MySQL | Los Tulachi |
+| `06-seguridad/` | Especificación de seguridad | Tareasmiranda |
+| `07-pasarela-pago/` | Integración con PayPal (sandbox) | Los Tulachi |
+| `08-inventario/` | Gestión de inventario con reservas | Los Tulachi |
+| `09-flujos/` | Flujo de compra completo | El Caleuche |
 | `10-ui-ux/` | Especificación de interfaz de usuario | Todos |
 | `11-planificacion-equipos/` | Planificación por módulos y equipos | Todos |
 

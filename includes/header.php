@@ -29,8 +29,11 @@
 
     <!-- ============================================================
          Estilos personalizados
-         ============================================================ -->
-    <link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/estilos.css">
+         ============================================================
+         [PEDAGÓGICO] Si necesitas estilos adicionales a Bootstrap,
+         crea el archivo assets/css/estilos.css y descomenta la línea.
+         Por ahora Bootstrap 5.3 es suficiente para todo el diseño. -->
+    <!-- <link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/estilos.css"> -->
 
     <!-- ============================================================
          jQuery 3.7 CDN
@@ -72,7 +75,7 @@
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <!-- Catálogo -->
                     <li class="nav-item">
-                        <a class="nav-link" href="<?= SITE_URL ?>/catalogo.php">
+                        <a class="nav-link" href="<?= SITE_URL ?>/index.php">
                             📋 Catálogo
                         </a>
                     </li>
@@ -105,10 +108,11 @@
                             <ul class="dropdown-menu dropdown-menu-end"
                                 aria-labelledby="usuarioDropdown">
 
-                                <!-- Enlace a mi cuenta -->
+                                <!-- [PEDAGÓGICO] Enlace al historial de compras.
+                                     Los usuarios pueden ver sus pedidos aquí. -->
                                 <li>
-                                    <a class="dropdown-item" href="<?= SITE_URL ?>/cuenta.php">
-                                        Mi Cuenta
+                                    <a class="dropdown-item" href="<?= SITE_URL ?>/carrito.php">
+                                        🛍️ Mi Carrito
                                     </a>
                                 </li>
 

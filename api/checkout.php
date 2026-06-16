@@ -301,4 +301,26 @@ try {
     $respuesta['message'] = $e->getMessage();
 }
 
-die(json_encode($respuesta, JSON_UNESCAPED_UNICODE));
+// ============================================================
+// [PEDAGÓGICO] Detectar si la petición espera JSON (AJAX) o es
+// un formulario tradicional. Si es formulario, redirigimos con
+// mensajes en sesión para mejor experiencia de usuario.
+// ============================================================
+$es_ajax = (
+    strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false
+    || ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest'
+);
+
+if ($es_ajax) {
+    // AJAX: devolver JSON como siempre
+    die(json_encode($respuesta, JSON_UNESCAPED_UNICODE));
+} else {
+    // Formulario tradicional: redirigir con mensaje en sesión
+    if ($respuesta['success']) {
+        $_SESSION['exito'] = $respuesta['message'];
+        redireccionar('../exito.php?orden=' . urlencode($respuesta['data']['numero_orden']));
+    } else {
+        $_SESSION['error'] = $respuesta['message'];
+        redireccionar('../checkout.php');
+    }
+}

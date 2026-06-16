@@ -5,11 +5,11 @@
 -- Motor de almacenamiento: InnoDB (transaccional, integridad referencial)
 -- =============================================================================
 
-CREATE DATABASE IF NOT EXISTS ecommerce
+CREATE DATABASE IF NOT EXISTS ecommerce_uct
     DEFAULT CHARACTER SET utf8mb4
     DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE ecommerce;
+USE ecommerce_uct;
 
 -- Desactivar verificaciones para creación ordenada
 SET FOREIGN_KEY_CHECKS = 0;

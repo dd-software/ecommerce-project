@@ -117,9 +117,9 @@ $(document).ready(function () {
         );
         $('body').append(toast);
 
-        // Auto-cerrar después de 3 segundos
+        // [PEDAGÓGICO] Auto-cerrar el mensaje después de 3 segundos
+        // usando remove() de jQuery para eliminar el elemento del DOM.
         setTimeout(function () {
-            toast.alert('close');
             toast.remove();
         }, 3000);
     }
@@ -137,11 +137,11 @@ $(document).ready(function () {
             '</div>'
         );
         $('body').append(toast);
-
+        // [PEDAGÓGICO] Auto-cerrar el mensaje después de 3 segundos
+        // usando remove() de jQuery para eliminar el elemento del DOM.
         setTimeout(function () {
-            toast.alert('close');
             toast.remove();
-        }, 4000);
+        }, 3000);
     }
 
     // ============================================================

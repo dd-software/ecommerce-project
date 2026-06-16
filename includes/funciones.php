@@ -235,8 +235,8 @@ function generar_numero_orden(PDO $pdo): string
     // Consultar el último número usado este año
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total
-        FROM ordenes
-        WHERE numero_orden LIKE :patron
+        FROM pedidos
+        WHERE numero LIKE :patron
     ");
     $stmt->execute([':patron' => "ORD-{$anio}-%"]);
     $resultado = $stmt->fetch();

@@ -1,6 +1,6 @@
 # Visión del Producto
 
-## 🎯 Propósito del Documento
+## 🎯 Propósito del Proyecto
 
 Este documento define la visión del producto **Plataforma Ecommerce UCT**. Sirve como guía maestra para que todos los equipos de desarrollo comprendan **qué** se construye y **por qué**. Cualquier decisión técnica debe alinearse con la visión aquí descrita.
 Este proyecto es con fines pedagógicos, por lo tanto es un ejercicio didáctico y el eje central es que los estudiantes aprendan a trabajar de forma 

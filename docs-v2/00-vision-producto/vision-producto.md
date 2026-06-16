@@ -3,6 +3,8 @@
 ## 🎯 Propósito del Documento
 
 Este documento define la visión del producto **Plataforma Ecommerce UCT**. Sirve como guía maestra para que todos los equipos de desarrollo comprendan **qué** se construye y **por qué**. Cualquier decisión técnica debe alinearse con la visión aquí descrita.
+Este proyecto es con fines pedagógicos, por lo tanto es un ejercicio didáctico y el eje central es que los estudiantes aprendan a trabajar de forma 
+colaborativa usando giuthub, notion, jira, además permitirá obtener como resultado una plataforma ecommerce con gestión de inventaio y pasarela de pagos paypal. Usando HTML5, CSS3, javascript, Jquery, JSON, PHP y MYSQL.
 
 ---
 
@@ -48,18 +50,6 @@ Una plataforma **web ecommerce autogestionable** donde:
 - Ve historial de pedidos
 - Gestiona su perfil y direcciones
 
-### 👤 Empleado
-- Todo lo del cliente +
-- Acceso limitado al panel admin
-- Gestiona pedidos (cambia estados)
-- Consulta inventario
-
-### 👤 Supervisor
-- Todo lo del empleado +
-- CRUD de productos y categorías
-- Ajustes de inventario
-- Reportes de ventas
-
 ### 👤 Administrador
 - Acceso total al sistema
 - Gestión de usuarios y roles
@@ -75,14 +65,13 @@ Una plataforma **web ecommerce autogestionable** donde:
 |----|----------|--------|-----------|
 | OBJ-01 | Explorar catálogo con filtros y búsqueda | A - Catálogo | 🔴 Crítica |
 | OBJ-02 | Agregar/quitar productos del carrito | B - Carrito | 🔴 Crítica |
-| OBJ-03 | Registrarse e iniciar sesión | C - Auth | 🔴 Crítica |
+| OBJ-03 | Registrarse e iniciar sesión (sólo clientes) | C - Auth | 🔴 Crítica |
 | OBJ-04 | Realizar checkout completo | D - Checkout | 🔴 Crítica |
 | OBJ-05 | Pagar con PayPal (sandbox) | E - PayPal | 🔴 Crítica |
 | OBJ-06 | Gestionar inventario con reservas | F - Inventario | 🔴 Crítica |
 | OBJ-07 | Administrar toda la plataforma | G - Admin | 🟡 Alta |
 | OBJ-08 | Orquestar flujo completo de compra | H - Integración | 🟡 Alta |
-| OBJ-09 | Notificar eventos por email | H - Integración | 🟢 Media |
-| OBJ-10 | Reportes y exportación de datos | G - Admin | 🟢 Media |
+| OBJ-10 | Reportes | G - Admin | 🟢 Media |
 
 ---
 
@@ -100,15 +89,15 @@ Una plataforma **web ecommerce autogestionable** donde:
 
 ## 6. Alcance — Lo que SÍ incluye
 
-- Catálogo de productos con imágenes, categorías y precios
+- Catálogo de productos con nombre del preoducto, descripción breve, imágenes, categorías y precios
 - Carrito de compras persistente (servidor) y temporal (localStorage)
-- Autenticación con roles (admin, supervisor, empleado, cliente)
+- Autenticación con roles (admin, cliente)
 - Checkout con selección de dirección y resumen
 - Pago mediante PayPal (sandbox — sin dinero real)
-- Gestión de inventario con reservas (30 min de expiración)
+- Gestión de inventario con reservas (10 min de expiración)
 - Panel administrativo con dashboard, usuarios, pedidos, auditoría
 - Trazabilidad completa (auditoría de todas las operaciones)
-- Seguridad: bcrypt, prepared statements, sesiones seguras
+- Seguridad: CSRF token, sesiones seguras
 
 ## 7. Alcance — Lo que NO incluye (futuras versiones)
 

@@ -1,5 +1,0 @@
-# Checklist
-
-[ ] Implementado
-[ ] Probado
-[ ] Documentado

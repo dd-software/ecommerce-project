@@ -36,16 +36,17 @@ Options -Indexes
 # directamente. Solo deben ser incluidos vía require_once desde
 # otros scripts PHP.
 # ============================================================
-<DirectoryMatch "^/.*/includes/">
-    Require all denied
-</DirectoryMatch>
+#corrección error htaccess
+#<DirectoryMatch "^/.*/includes/">
+#    Require all denied
+#</DirectoryMatch>
 
 # Alternativa con FilesMatch (más portable):
 # [PEDAGÓGICO] Si tu Apache no soporta DirectoryMatch,
 # esta regla bloquea TODOS los archivos .php dentro de includes/.
-<FilesMatch "^includes/.*\.php$">
-    Require all denied
-</FilesMatch>
+#<FilesMatch "^includes/.*\.php$">
+#    Require all denied
+#</FilesMatch>
 
 # ============================================================
 # Bloquear acceso directo a api/

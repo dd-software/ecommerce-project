@@ -1,0 +1,46 @@
+# ============================================================
+# .htaccess - Protección de carpeta includes/
+# Ecommerce Pedagógico
+# ============================================================
+#
+# Esta carpeta contiene archivos internos del sistema:
+# - Configuración de base de datos
+# - Conexiones PDO/MySQLi
+# - Funciones auxiliares
+# - Lógica compartida
+#
+# Estos archivos NO deben ser accesibles directamente
+# desde el navegador.
+#
+# Ejemplo bloqueado:
+# http://localhost/ecommerce-project/includes/config.php
+#
+# Pero siguen funcionando mediante:
+# require_once 'includes/config.php';
+#
+# ============================================================
+
+
+# ============================================================
+# Bloquear todo acceso HTTP directo
+# ============================================================
+# Apache permitirá que PHP incluya los archivos internamente,
+# pero rechazará solicitudes realizadas desde el navegador.
+# ============================================================
+
+Require all denied
+
+
+# ============================================================
+# NOTA:
+#
+# Esta regla NO afecta:
+#
+# require_once('includes/db.php');
+# include('includes/funciones.php');
+#
+# porque esas llamadas ocurren internamente desde PHP.
+#
+# Solo bloquea peticiones HTTP externas.
+#
+# ============================================================

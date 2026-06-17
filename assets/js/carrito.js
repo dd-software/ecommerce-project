@@ -214,6 +214,63 @@ $(document).ready(function () {
     });
 
     // ============================================================
+// AGREGAR AL CARRITO DESDE CATÁLOGO (index.php)
+// ============================================================
+
+$('.agregar-carrito').on('click', function (e) {
+
+    console.log("BOTON AGREGAR PRESIONADO");
+    
+    e.preventDefault();
+
+    var $btn = $(this);
+
+    var productoId = $btn.data('producto-id');
+    var cantidad = $btn.data('cantidad') || 1;
+
+    if (!productoId || productoId <= 0) {
+        mostrarMensajeError('Producto inválido.');
+        return;
+    }
+
+    $btn.prop('disabled', true).text('⏳ Agregando...');
+
+    $.ajax({
+        url: 'api/carrito.php',
+        method: 'POST',
+        data: {
+            action: 'agregar',
+            producto_id: productoId,
+            cantidad: cantidad,
+            _csrf_token: csrfToken
+        },
+        dataType: 'json',
+
+        success: function(respuesta) {
+            if (respuesta.success) {
+                actualizarBadgeCarrito(true);
+            } else {
+                mostrarMensajeError(
+                    respuesta.message || 'No se pudo agregar'
+                );
+            }
+        },
+
+        error: function() {
+            mostrarMensajeError('Error de conexión.');
+        },
+
+        complete: function() {
+            $btn.prop('disabled', false)
+                .text('🛒 Agregar');
+        }
+    });
+
+});
+
+
+
+    // ============================================================
     // 2. ACTUALIZAR CANTIDAD (Desde carrito.php - input change)
     // ============================================================
     // [PEDAGÓGICO] En la página carrito.php, cuando el usuario cambia

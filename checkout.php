@@ -65,6 +65,8 @@ $totales = calcular_totales($items_totales);
 $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 ?>
 
+<script src="https://www.paypal.com/sdk/js?client-id=AQUI_VA_TU_CLIENT_ID_DE_PAYPAL&currency=USD"></script>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">💳 Checkout</h1>
     <a href="carrito.php" class="btn btn-outline-secondary btn-sm">
@@ -237,9 +239,9 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 
             if (!calle || !ciudad || !region) {
                 alert('⚠️ Por favor, completa los campos obligatorios de la dirección (Calle, Ciudad y Región) antes de pagar.');
-                return actions.reject(); // Cancela la apertura del popup de PayPal
+                return actions.reject(); 
             }
-            return actions.resolve(); // Permite continuar si la validación es exitosa
+            return actions.resolve(); 
         },
 
         // 2. Configuramos el monto convertido (Pasando el total de CLP a USD dividiendo por 900)
@@ -258,28 +260,23 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
             return actions.order.capture().then(function(orderData) {
                 const form = document.getElementById('form-checkout');
                 
-                // Evitamos duplicados limpiando inputs previos si el usuario hace reintentos
                 const existeInput = document.querySelector('input[name="paypal_order_id"]');
                 if (existeInput) existeInput.remove();
                 
-                // Creamos el campo oculto con el ID de transacción obligatorio para la API
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = 'paypal_order_id';
                 input.value = orderData.id;
                 form.appendChild(input);
                 
-                // Enviamos el formulario de forma sincrónica a api/checkout.php
                 form.submit();
             });
         },
 
-        // 4. Si el cliente cierra la pestaña de PayPal sin pagar
         onCancel: function(data) {
             alert('Pago cancelado. Tu orden no ha sido procesada.');
         },
 
-        // 5. Si ocurre un fallo de red o error de comunicación con PayPal
         onError: function(err) {
             alert('Hubo un problema de conexión con la pasarela de PayPal.');
             console.error(err);

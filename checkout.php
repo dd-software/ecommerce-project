@@ -4,8 +4,8 @@
 // ============================================================
 // [PEDAGÓGICO] Esta página requiere que el usuario esté
 // logueado. Muestra el resumen del carrito y un formulario
-// para la dirección de envío. El botón "Confirmar compra"
-// enviará los datos a api/checkout.php para procesar.
+// para la dirección de envío. El botón de PayPal enviará 
+// los datos a api/checkout.php para procesar la orden.
 // ============================================================
 
 require_once __DIR__ . '/includes/config.php';
@@ -19,9 +19,6 @@ $pdo = getDB();
 // ============================================================
 // Verificar autenticación
 // ============================================================
-// [PEDAGÓGICO] Si el usuario no ha iniciado sesión, lo
-// redirigimos al login. Le pasamos la URL actual como
-// 'redirect' para que vuelva aquí después de loguearse.
 if (!esta_logueado()) {
     $_SESSION['error'] = 'Debes iniciar sesión para continuar con la compra.';
     redireccionar('login.php?redirect=' . urlencode('checkout.php'));
@@ -68,9 +65,6 @@ $totales = calcular_totales($items_totales);
 $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 ?>
 
-<!-- ============================================================
-     Encabezado de la página
-     ============================================================ -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">💳 Checkout</h1>
     <a href="carrito.php" class="btn btn-outline-secondary btn-sm">
@@ -78,29 +72,20 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
     </a>
 </div>
 
-<!-- Mostrar errores desde sesión -->
 <?php if (!empty($_SESSION['error'])): ?>
     <div class="alert alert-danger"><?= escapar($_SESSION['error']) ?></div>
     <?php unset($_SESSION['error']); ?>
 <?php endif; ?>
 
 <div class="row g-4">
-    <!-- ============================================================
-         Columna izquierda: Formulario de dirección de envío
-         ============================================================ -->
     <div class="col-lg-7">
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h4 class="card-title mb-4">📦 Dirección de Envío</h4>
 
-                <!-- [PEDAGÓGICO] El formulario envía los datos a api/checkout.php
-                     mediante POST. Este archivo se encargará de crear la orden
-                     en la base de datos y redirigir a exito.php. -->
                 <form id="form-checkout" method="POST" action="api/checkout.php" novalidate>
-                    <!-- Token CSRF -->
                     <input type="hidden" name="_csrf_token" value="<?= csrf_token() ?>">
 
-                    <!-- Calle y número -->
                     <div class="mb-3">
                         <label for="calle" class="form-label">🏠 Calle y número</label>
                         <input type="text"
@@ -112,7 +97,6 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                     </div>
 
                     <div class="row">
-                        <!-- Ciudad -->
                         <div class="col-md-6 mb-3">
                             <label for="ciudad" class="form-label">🏙️ Ciudad</label>
                             <input type="text"
@@ -123,7 +107,6 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                                    required>
                         </div>
 
-                        <!-- Región -->
                         <div class="col-md-6 mb-3">
                             <label for="region" class="form-label">🗺️ Región</label>
                             <select id="region" name="region" class="form-select" required>
@@ -148,7 +131,6 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                         </div>
                     </div>
 
-                    <!-- Código Postal -->
                     <div class="mb-3">
                         <label for="codigo_postal" class="form-label">📮 Código Postal</label>
                         <input type="text"
@@ -160,7 +142,6 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                                title="El código postal chileno tiene 7 dígitos">
                     </div>
 
-                    <!-- Notas adicionales -->
                     <div class="mb-3">
                         <label for="notas" class="form-label">📝 Notas (opcional)</label>
                         <textarea id="notas"
@@ -170,55 +151,22 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                                   placeholder="Indica cualquier instrucción especial para el envío..."></textarea>
                     </div>
 
-                  <hr>
+                    <hr>
 
-<div id="paypal-button-container"></div>
+                    <div id="paypal-button-container" class="mt-4 mb-3"></div>
+                </form> 
+            </div>
+        </div>
+    </div>
 
-<script>
-    paypal.Buttons({
-    // Configura el monto
-    createOrder: function(data, actions) {
-            return actions.order.create({
-                purchase_units: [{
-                    amount: {
-                        // El valor debe ser un string con 2 decimales
-                        value: '<?= number_format($totales['total'] / 900, 2, '.', '') ?>'
-                    }
-                }]
-            });
-        },
-        // Cuando el pago es aprobado, enviamos el formulario
-        onApprove: function(data, actions) {
-            return actions.order.capture().then(function(orderData) {
-                const form = document.getElementById('form-checkout');
-                
-                // Creamos un campo oculto para avisar al backend que el pago está OK
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'paypal_order_id';
-                input.value = orderData.id;
-                form.appendChild(input);
-                
-                // Enviamos el formulario original
-                form.submit();
-            });
-        }
-    }).render('#paypal-button-container');
-</script>
-
-    <!-- ============================================================
-         Columna derecha: Resumen de la compra
-         ============================================================ -->
     <div class="col-lg-5">
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h4 class="card-title mb-3">📋 Resumen del Pedido</h4>
 
-                <!-- Lista de productos -->
                 <div class="mb-3">
                     <?php foreach ($items_carrito as $item): ?>
                     <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
-                        <!-- Mini imagen -->
                         <div class="me-3">
                             <?php if (!empty($item['imagen_url'])): ?>
                                 <img src="<?= escapar($item['imagen_url']) ?>"
@@ -232,14 +180,12 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                                 </div>
                             <?php endif; ?>
                         </div>
-                        <!-- Info del producto -->
                         <div class="flex-grow-1">
                             <small class="fw-semibold d-block"><?= escapar($item['nombre']) ?></small>
                             <small class="text-muted">
                                 <?= (int) $item['cantidad'] ?> x <?= formato_precio($item['precio_unitario']) ?>
                             </small>
                         </div>
-                        <!-- Subtotal -->
                         <div class="fw-semibold">
                             <?= formato_precio($item['precio_unitario'] * $item['cantidad']) ?>
                         </div>
@@ -247,7 +193,6 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Totales -->
                 <div class="mt-3">
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Subtotal (<?= $total_unidades ?> productos):</span>
@@ -269,8 +214,6 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                         </span>
                     </div>
                 </div>
-
-                <!-- Información del usuario -->
                 <div class="mt-4 p-3 bg-light rounded">
                     <small class="text-muted d-block">
                         👤 <strong>Cliente:</strong> <?= escapar($_SESSION['usuario_nombre'] ?? '') ?>
@@ -283,6 +226,66 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
         </div>
     </div>
 </div>
+
+<script>
+    paypal.Buttons({
+        // 1. Validamos que la dirección no esté vacía antes de abrir la interfaz de PayPal
+        onClick: function(data, actions) {
+            const calle = document.getElementById('calle').value.trim();
+            const ciudad = document.getElementById('ciudad').value.trim();
+            const region = document.getElementById('region').value;
+
+            if (!calle || !ciudad || !region) {
+                alert('⚠️ Por favor, completa los campos obligatorios de la dirección (Calle, Ciudad y Región) antes de pagar.');
+                return actions.reject(); // Cancela la apertura del popup de PayPal
+            }
+            return actions.resolve(); // Permite continuar si la validación es exitosa
+        },
+
+        // 2. Configuramos el monto convertido (Pasando el total de CLP a USD dividiendo por 900)
+        createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        value: '<?= number_format($totales['total'] / 900, 2, '.', '') ?>'
+                    }
+                }]
+            });
+        },
+
+        // 3. Cuando el pago es aprobado por el cliente en PayPal
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(orderData) {
+                const form = document.getElementById('form-checkout');
+                
+                // Evitamos duplicados limpiando inputs previos si el usuario hace reintentos
+                const existeInput = document.querySelector('input[name="paypal_order_id"]');
+                if (existeInput) existeInput.remove();
+                
+                // Creamos el campo oculto con el ID de transacción obligatorio para la API
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'paypal_order_id';
+                input.value = orderData.id;
+                form.appendChild(input);
+                
+                // Enviamos el formulario de forma sincrónica a api/checkout.php
+                form.submit();
+            });
+        },
+
+        // 4. Si el cliente cierra la pestaña de PayPal sin pagar
+        onCancel: function(data) {
+            alert('Pago cancelado. Tu orden no ha sido procesada.');
+        },
+
+        // 5. Si ocurre un fallo de red o error de comunicación con PayPal
+        onError: function(err) {
+            alert('Hubo un problema de conexión con la pasarela de PayPal.');
+            console.error(err);
+        }
+    }).render('#paypal-button-container');
+</script>
 
 <?php
 require_once __DIR__ . '/includes/footer.php';

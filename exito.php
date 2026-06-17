@@ -11,7 +11,7 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
+
 
 $pdo = getDB();
 
@@ -67,7 +67,12 @@ if (empty($numero_orden)) {
     }
 }
 ?>
-
+<?php
+// ============================================================
+// Incluir Header para que no afecte logica
+// ============================================================
+require_once __DIR__ . '/includes/header.php';
+?>
 <!-- ============================================================
      Mensaje de éxito y detalle de la orden
      ============================================================ -->

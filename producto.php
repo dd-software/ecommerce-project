@@ -11,8 +11,6 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
-
 $pdo = getDB();
 
 // ============================================================
@@ -66,7 +64,12 @@ if (empty($imagenes)) {
     $imagenes = [];
 }
 ?>
-
+<?php
+// ============================================================
+// Incluir Header para que no afecte logica
+// ============================================================
+require_once __DIR__ . '/includes/header.php';
+?>
 <!-- ============================================================
      Breadcrumb (Navegación de migas de pan)
      ============================================================

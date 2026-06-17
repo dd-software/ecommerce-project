@@ -12,8 +12,6 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
-
 $pdo = getDB();
 
 // ============================================================
@@ -67,7 +65,12 @@ foreach ($items_carrito as $item) {
 $totales = calcular_totales($items_totales);
 $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 ?>
-
+<?php
+// ============================================================
+// Incluir Header para que no afecte logica
+// ============================================================
+require_once __DIR__ . '/includes/header.php';
+?>
 <!-- ============================================================
      Encabezado de la página
      ============================================================ -->

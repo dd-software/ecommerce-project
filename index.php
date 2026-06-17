@@ -13,8 +13,6 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-// Incluir header (abre <main class="container my-4">)
-require_once __DIR__ . '/includes/header.php';
 
 $pdo = getDB();
 
@@ -49,6 +47,12 @@ $stmt = $pdo->query("
     LIMIT 4
 ");
 $destacados = $stmt->fetchAll();
+?>
+<?php
+// ============================================================
+// Incluir Header para que no afecte logica
+// ============================================================
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <!-- ============================================================

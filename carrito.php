@@ -16,8 +16,6 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
-
 $pdo = getDB();
 $mensaje = '';
 $error   = '';
@@ -274,7 +272,12 @@ $totales = calcular_totales($items_totales);
 // Contar cantidad total de items (unidades)
 $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 ?>
-
+<?php
+// ============================================================
+// Incluir Header para que no afecte logica
+// ============================================================
+require_once __DIR__ . '/includes/header.php';
+?>
 <!-- ============================================================
      Título y mensajes
      ============================================================ -->

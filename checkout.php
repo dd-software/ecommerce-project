@@ -65,7 +65,7 @@ $totales = calcular_totales($items_totales);
 $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 ?>
 
-<script src="https://www.paypal.com/sdk/js?client-id=AQUI_VA_TU_CLIENT_ID_DE_PAYPAL&currency=USD"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AS0Vpwu2uML769uxxby0pW9pD_uA3Psk-3Zc7XNfU1b89nS_fI8YIuYf8p&currency=USD"></script>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">💳 Checkout</h1>

@@ -18,8 +18,8 @@ define('COSTO_ENVIO', 4990); // $4.990 CLP
 define('RESERVA_MINUTOS', 10); // Las reservas expiran en 10 min
 
 define('PAYPAL_MODE', 'sandbox');
-define('PAYPAL_CLIENT_ID', '');
-define('PAYPAL_SECRET', '');
+define('PAYPAL_CLIENT_ID', 'AS0Vpwu2uML769uxxby0p2XLqbcWhRYHcAqiyVcM48VztuLCjKdBRetSKdSPLAzmlLxgEzesfwrU8PkO');
+define('PAYPAL_SECRET', 'ENJaU4SR543EjDUWBecJOr4gIl--pOQsXnaBgCnBk_w9amd0FuMm9NRjxuVa1kWzK2RjsqN2jXztWChY');
 define('PAYPAL_WEBHOOK_ID', '');
 
 // Sesión

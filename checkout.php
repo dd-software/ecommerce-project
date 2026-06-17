@@ -170,20 +170,41 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                                   placeholder="Indica cualquier instrucción especial para el envío..."></textarea>
                     </div>
 
-                    <hr>
+                  <hr>
 
-                    <!-- Botón de confirmación -->
-                    <button type="submit" class="btn btn-success btn-lg w-100">
-                        ✅ Confirmar Compra
-                    </button>
+<div id="paypal-button-container"></div>
 
-                    <p class="text-muted small text-center mt-2 mb-0">
-                        Al confirmar, aceptas nuestros términos y condiciones.
-                    </p>
-                </form>
-            </div>
-        </div>
-    </div>
+<script>
+    paypal.Buttons({
+    // Configura el monto
+    createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        // El valor debe ser un string con 2 decimales
+                        value: '<?= number_format($totales['total'] / 900, 2, '.', '') ?>'
+                    }
+                }]
+            });
+        },
+        // Cuando el pago es aprobado, enviamos el formulario
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(orderData) {
+                const form = document.getElementById('form-checkout');
+                
+                // Creamos un campo oculto para avisar al backend que el pago está OK
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'paypal_order_id';
+                input.value = orderData.id;
+                form.appendChild(input);
+                
+                // Enviamos el formulario original
+                form.submit();
+            });
+        }
+    }).render('#paypal-button-container');
+</script>
 
     <!-- ============================================================
          Columna derecha: Resumen de la compra

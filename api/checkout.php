@@ -60,7 +60,14 @@ try {
     if (!csrf_validar($token)) {
         throw new Exception('Error de seguridad. Token CSRF inválido.');
     }
+    // ============================================================
+    // 3.5 Validar pago de PayPal (Nuevo paso obligatorio)
+    // ============================================================
+    $paypal_order_id = $_POST['paypal_order_id'] ?? null;
 
+    if (!$paypal_order_id) {
+     throw new Exception('El pago no ha sido confirmado por PayPal.');
+}   
     // ============================================================
     // 3. Validar datos de dirección de envío
     // ============================================================

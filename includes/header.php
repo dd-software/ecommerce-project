@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+<script src="https://www.paypal.com/sdk/js?client-id=TU_CLIENT_ID_DE_PAYPAL&currency=USD"></script>
 <head>
     <!-- ============================================================
          Meta Tags Básicos

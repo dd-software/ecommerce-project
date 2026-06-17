@@ -12,12 +12,11 @@ define('DB_NAME', 'ecommerce_uct');
 
 // Configuración de la aplicación
 define('SITE_NAME', 'Mi Tienda UCT');
-define('SITE_URL', 'http://localhost/ecommerce');
+define('SITE_URL', 'http://localhost/ecommerce-project');
 define('IVA', 19); // 19% IVA chileno
 define('COSTO_ENVIO', 4990); // $4.990 CLP
 define('RESERVA_MINUTOS', 10); // Las reservas expiran en 10 min
 
-// PayPal Sandbox
 define('PAYPAL_MODE', 'sandbox');
 define('PAYPAL_CLIENT_ID', '');
 define('PAYPAL_SECRET', '');

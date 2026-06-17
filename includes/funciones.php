@@ -247,3 +247,147 @@ function generar_numero_orden(PDO $pdo): string
     // str_pad rellena con ceros a la izquierda hasta 5 dígitos
     return 'ORD-' . $anio . '-' . str_pad($correlativo, 5, '0', STR_PAD_LEFT);
 }
+
+// ============================================================
+// Gestión de Inventario (OBJ-06)
+// ============================================================
+
+/**
+ * Devuelve el stock disponible real de un producto.
+ *
+ * [PEDAGÓGICO] El stock que se puede vender es siempre
+ * cantidad - cantidad_reservada. Centralizar este cálculo
+ * evita olvidos cuando se consulta inventario en otras vistas.
+ *
+ * @param PDO $pdo
+ * @param int $producto_id
+ * @return int Stock disponible (>= 0). 0 si el producto no existe.
+ */
+function stock_disponible(PDO $pdo, int $producto_id): int
+{
+    $stmt = $pdo->prepare("
+        SELECT GREATEST(0, cantidad - cantidad_reservada) AS disponible
+        FROM inventario
+        WHERE producto_id = :pid
+    ");
+    $stmt->execute([':pid' => $producto_id]);
+    return (int) ($stmt->fetchColumn() ?: 0);
+}
+
+/**
+ * Libera automáticamente las reservas activas cuya fecha de
+ * expiración ya pasó.
+ *
+ * [PEDAGÓGICO] Una reserva tiene RESERVA_MINUTOS (10 min) para
+ * convertirse en pago confirmado. Si vence sin confirmarse, hay
+ * que devolver esas unidades al stock disponible. Esta función
+ * se invoca en cada checkout y consulta de inventario para que
+ * el sistema "se limpie solo" sin necesidad de un cron.
+ *
+ * Devuelve la cantidad de reservas liberadas (0 si no había
+ * ninguna vencida).
+ *
+ * @param PDO $pdo
+ * @return int Reservas liberadas
+ */
+function liberar_reservas_expiradas(PDO $pdo): int
+{
+    $debia_iniciar = !$pdo->inTransaction();
+
+    if ($debia_iniciar) {
+        $pdo->beginTransaction();
+    }
+
+    try {
+        // 1. Bloquear y leer las reservas vencidas que aún están activas.
+        $stmt = $pdo->prepare("
+            SELECT id, orden_id, producto_id, cantidad
+            FROM reservas_inventario
+            WHERE estado = 'activa'
+              AND fecha_expiracion <= NOW()
+            FOR UPDATE
+        ");
+        $stmt->execute();
+        $reservas = $stmt->fetchAll();
+
+        if (empty($reservas)) {
+            if ($debia_iniciar) {
+                $pdo->commit();
+            }
+            return 0;
+        }
+
+        $stmt_inv = $pdo->prepare("
+            UPDATE inventario
+            SET cantidad_reservada = GREATEST(0, cantidad_reservada - :cant)
+            WHERE producto_id = :pid
+        ");
+
+        $stmt_estado = $pdo->prepare("
+            UPDATE reservas_inventario
+            SET estado = 'expirada'
+            WHERE id = :id AND estado = 'activa'
+        ");
+
+        $stmt_mov = $pdo->prepare("
+            INSERT INTO movimientos_inventario
+                (producto_id, tipo_movimiento, cantidad, referencia, fecha)
+            VALUES (:pid, 'liberacion', :cant, :ref, NOW())
+        ");
+
+        foreach ($reservas as $reserva) {
+            $stmt_inv->execute([
+                ':cant' => (int) $reserva['cantidad'],
+                ':pid'  => (int) $reserva['producto_id'],
+            ]);
+            $stmt_estado->execute([':id' => (int) $reserva['id']]);
+            $stmt_mov->execute([
+                ':pid'  => (int) $reserva['producto_id'],
+                ':cant' => (int) $reserva['cantidad'],
+                ':ref'  => 'EXP-' . (int) $reserva['id'] . ' orden #' . (int) $reserva['orden_id'],
+            ]);
+        }
+
+        if ($debia_iniciar) {
+            $pdo->commit();
+        }
+
+        return count($reservas);
+    } catch (Exception $e) {
+        if ($debia_iniciar && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        // [PEDAGÓGICO] No relanzamos para que un fallo de limpieza
+        // automática nunca rompa el flujo principal del usuario.
+        error_log('liberar_reservas_expiradas: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * Lista de productos cuyo stock disponible cayó al nivel de
+ * alerta o por debajo.
+ *
+ * [PEDAGÓGICO] Sirve al panel admin para identificar qué hay
+ * que reponer. Considera la cantidad reservada, no solo el
+ * stock bruto.
+ *
+ * @param PDO $pdo
+ * @return array
+ */
+function productos_con_stock_bajo(PDO $pdo): array
+{
+    $stmt = $pdo->query("
+        SELECT p.id, p.nombre, p.sku,
+               i.cantidad,
+               i.cantidad_reservada,
+               (i.cantidad - i.cantidad_reservada) AS disponible,
+               i.umbral_alerta
+        FROM productos p
+        JOIN inventario i ON i.producto_id = p.id
+        WHERE (i.cantidad - i.cantidad_reservada) <= i.umbral_alerta
+          AND p.activo = 1
+        ORDER BY disponible ASC, p.nombre ASC
+    ");
+    return $stmt->fetchAll();
+}

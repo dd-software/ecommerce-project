@@ -290,7 +290,7 @@ $destacados = $stmt->fetchAll();
                         <!-- Nombre -->
                         <h6 class="card-title mt-1">
                             <a href="producto.php?id=<?= (int) $prod['id'] ?>"
-                               class="text-decoration-none text-dark">
+                               class="text-decoration-none text-dark stretched-link">
                                 <?= escapar($prod['nombre']) ?>
                             </a>
                         </h6>

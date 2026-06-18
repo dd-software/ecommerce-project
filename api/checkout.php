@@ -318,7 +318,10 @@ if ($es_ajax) {
     // Formulario tradicional: redirigir con mensaje en sesión
     if ($respuesta['success']) {
         $_SESSION['exito'] = $respuesta['message'];
-        redireccionar('../exito.php?orden=' . urlencode($respuesta['data']['numero_orden']));
+        // Guardar orden_id en sesión para que pago.php lo use
+        $_SESSION['orden_pendiente_id'] = $respuesta['data']['orden_id'];
+        // Redirigir a pago.php que iniciará el flujo PayPal
+        redireccionar('../pago.php?orden_id=' . urlencode($respuesta['data']['orden_id']));
     } else {
         $_SESSION['error'] = $respuesta['message'];
         redireccionar('../checkout.php');

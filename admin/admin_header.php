@@ -211,11 +211,10 @@
 
             <!-- Categorías -->
             <li class="nav-item">
-                <a class="nav-link" href="#"
-                   title="Próximamente: Gestión de categorías">
+                <a class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'categorias.php' ? 'active' : '' ?>"
+                   href="<?= SITE_URL ?>/admin/categorias.php">
                     <i class="bi bi-tags"></i>
                     Categorías
-                    <span class="badge bg-secondary ms-auto">Pronto</span>
                 </a>
             </li>
 

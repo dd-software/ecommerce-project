@@ -1,154 +1,36 @@
 # ============================================================
-# .htaccess - Reglas Apache para el Ecommerce Pedagógico
-# ============================================================
-# [PEDAGÓGICO] Este archivo de configuración de Apache permite:
-# 1. Bloquear acceso directo a directorios sensibles
-# 2. Proteger includes/ (configuración, funciones, DB)
-# 3. Proteger api/ (endpoints internos que no deben listarse)
-#
-# NOTA: En WAMP/XAMPP, este archivo DEBE estar presente y
-# AllowOverride debe estar en All en httpd.conf para que
-# las directivas <FilesMatch> y Deny from all funcionen.
-#
-# Si usas otro servidor (Nginx, IIS), estas reglas son
-# específicas de Apache y deben adaptarse.
+# .htaccess - Reglas Apache para el Ecommerce Pedagogico
+# Version corregida - Permite peticiones AJAX a api/
 # ============================================================
 
-# ============================================================
 # Prevenir listado de directorios
-# ============================================================
-# [PEDAGÓGICO] Desactivar el listado de directorios evita que
-# un visitante curioso vea todos los archivos de una carpeta
-# si no hay un index.* presente. Por defecto Apache muestra
-# un listado si no encuentra index.html/index.php.
 Options -Indexes
 
-# ============================================================
-# Bloquear acceso directo a includes/
-# ============================================================
-# [PEDAGÓGICO] La carpeta includes/ contiene archivos críticos:
-#   - config.php (credenciales de BD)
-#   - db.php (conexión PDO)
-#   - funciones.php (lógica de negocio)
-#   - header.php / footer.php (estructura HTML)
-#
-# Nadie debe poder acceder a http://localhost/ecommerce/includes/config.php
-# directamente. Solo deben ser incluidos vía require_once desde
-# otros scripts PHP.
-# ============================================================
-#corrección error htaccess
-#<DirectoryMatch "^/.*/includes/">
-#    Require all denied
-#</DirectoryMatch>
-
-# Alternativa con FilesMatch (más portable):
-# [PEDAGÓGICO] Si tu Apache no soporta DirectoryMatch,
-# esta regla bloquea TODOS los archivos .php dentro de includes/.
-#<FilesMatch "^includes/.*\.php$">
-#    Require all denied
-#</FilesMatch>
-
-# ============================================================
-# Bloquear acceso directo a api/
-# ============================================================
-# [PEDAGÓGICO] Los endpoints de api/ deben ser consumidos
-# ÚNICAMENTE por JavaScript (AJAX/fetch) desde páginas del
-# mismo sitio, NO mediante acceso directo en el navegador.
-#
-# Sin embargo, para que las peticiones AJAX funcionen, Apache
-# debe permitir el acceso. Por eso usamos DirectoryMatch para
-# denegar SOLO el listado, pero permitir el acceso a archivos
-# individuales.
-#
-# Si queremos bloquear completamente el acceso directo (solo
-# permitir desde scripts internos), usaríamos:
-#   Require host localhost
-# Pero eso rompería las peticiones AJAX desde el frontend.
-#
-# Por ahora solo protegemos contra listado de directorios
-# (Options -Indexes ya lo hace globalmente).
-# ============================================================
-# [PEDAGÓGICO] Si en el futuro quieres restringir aún más api/,
-# puedes descomentar estas líneas:
-#
-# <DirectoryMatch "^/.*/api/">
-#     Require all denied
-# </DirectoryMatch>
-
-# ============================================================
-# Bloquear acceso a archivos sensibles específicos
-# ============================================================
-# [PEDAGÓGICO] Archivos que NUNCA deben ser accesibles
-# directamente desde el navegador:
-#   - schema.sql (estructura de BD)
-#   - README.md (información del proyecto)
-#   - .gitignore, .env (credenciales/config)
-# ============================================================
-<FilesMatch "\.(sql|md|env|log|lock)$">
-    Require all denied
+# Bloquear acceso directo a includes/ (solo desde PHP)
+<FilesMatch "^includes/.*\.php$">
+    Order Allow,Deny
+    Deny from all
 </FilesMatch>
 
+# Bloquear acceso a archivos sensibles por extension
+<FilesMatch "\.(sql|md|env|log|lock|bak|old)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear archivos de configuracion de proyecto
 <FilesMatch "^(composer\.json|composer\.lock|package\.json|package-lock\.json)$">
-    Require all denied
+    Order Allow,Deny
+    Deny from all
 </FilesMatch>
 
-# ============================================================
-# Proteger archivos ocultos (empiezan con punto)
-# ============================================================
-# [PEDAGÓGICO] Archivos como .gitignore, .htaccess, .env
-# contienen configuración sensible. Apache por defecto bloquea
-# .htaccess pero no .gitignore ni .env.
-# ============================================================
+# Bloquear acceso a archivos ocultos
 <FilesMatch "^\.">
-    Require all denied
+    Order Allow,Deny
+    Deny from all
 </FilesMatch>
 
-# ============================================================
-# URL amigables (opcional - descomentar si se desea)
-# ============================================================
-# [PEDAGÓGICO] Si en el futuro se implementa un enrutador
-# PHP (front controller pattern), se puede usar RewriteEngine
-# para dirigir todas las peticiones a index.php.
-# Por ahora, el sitio usa URLs tradicionales (producto.php?id=X).
-#
-# <IfModule mod_rewrite.c>
-#     RewriteEngine On
-#     RewriteRule ^api/(.*)$ api/$1 [L,QSA]
-# </IfModule>
+# api/ NO esta bloqueado - el frontend necesita acceso AJAX
 
-# ============================================================
-# Configurar página de error personalizada
-# ============================================================
-# [PEDAGÓGICO] Páginas de error amigables en vez de las
-# páginas por defecto de Apache (poco informativas).
-# Descomentar cuando existan estas páginas:
-#
-# ErrorDocument 403 /error/403.php
-# ErrorDocument 404 /error/404.php
-# ErrorDocument 500 /error/500.php
-
-# ============================================================
-# Forzar UTF-8 en respuestas de texto
-# ============================================================
-# [PEDAGÓGICO] Asegura que todos los archivos .php, .html,
-# .css, .js se sirvan con codificación UTF-8, evitando
-# problemas con acentos y caracteres especiales.
+# Forzar UTF-8
 AddDefaultCharset UTF-8
-
-# ============================================================
-# Cache de archivos estáticos (rendimiento)
-# ============================================================
-# [PEDAGÓGICO] Los archivos CSS, JS, imágenes y fuentes
-# pueden cachearse en el navegador del cliente para que
-# las visitas posteriores sean más rápidas.
-#
-# <IfModule mod_expires.c>
-#     ExpiresActive On
-#     ExpiresByType text/css          "access plus 1 week"
-#     ExpiresByType application/javascript "access plus 1 week"
-#     ExpiresByType image/png         "access plus 1 month"
-#     ExpiresByType image/jpeg        "access plus 1 month"
-#     ExpiresByType image/gif         "access plus 1 month"
-#     ExpiresByType image/svg+xml     "access plus 1 month"
-#     ExpiresByType font/woff2        "access plus 1 year"
-# </IfModule>

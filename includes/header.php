@@ -46,7 +46,7 @@
             crossorigin="anonymous">
     </script>
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
 
     <!-- ============================================================
          Navbar Responsivo
@@ -169,4 +169,4 @@
          ============================================================
          Cada página debe extender su contenido dentro de este
          contenedor para mantener una estructura consistente. -->
-    <main class="container my-4">
+    <main class="container my-4 flex-grow-1">

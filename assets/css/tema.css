@@ -19,6 +19,17 @@ footer {
 }
 
 /* ============================================================
+   Modo claro: suavizar el footer
+   ============================================================
+   El footer usa .bg-dark (negro) hard-codeado, que en modo claro
+   contrasta demasiado con el resto de la página. Lo pasamos a un
+   gris medio (Bootstrap secondary) para que se integre mejor.
+   ============================================================ */
+[data-bs-theme="light"] footer.bg-dark {
+    background-color: #6c757d !important;
+}
+
+/* ============================================================
    Modo oscuro: ajustes a componentes con colores hard-codeados
    ============================================================ */
 [data-bs-theme="dark"] .navbar.bg-light {

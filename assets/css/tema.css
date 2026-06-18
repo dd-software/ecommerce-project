@@ -1,0 +1,90 @@
+/* ============================================================
+   Tema Claro / Oscuro (toggle)
+   ============================================================
+   [PEDAGÓGICO] Bootstrap 5.3 trae soporte nativo de modo oscuro
+   activado con el atributo data-bs-theme="dark" en <html>.
+   Este archivo solo añade overrides para los componentes del
+   layout que tienen colores fijos (navbar bg-light, footer
+   bg-dark) y para el botón flotante de cambio de tema.
+   ============================================================ */
+
+/* Transición suave entre temas en los elementos más visibles. */
+body,
+.navbar,
+.card,
+.dropdown-menu,
+footer {
+    transition: background-color 0.2s ease, color 0.2s ease,
+                border-color 0.2s ease;
+}
+
+/* ============================================================
+   Modo oscuro: ajustes a componentes con colores hard-codeados
+   ============================================================ */
+[data-bs-theme="dark"] .navbar.bg-light {
+    background-color: #1f2328 !important;
+}
+
+[data-bs-theme="dark"] .navbar.navbar-light .navbar-brand,
+[data-bs-theme="dark"] .navbar.navbar-light .nav-link {
+    color: #e6edf3;
+}
+
+[data-bs-theme="dark"] .navbar.navbar-light .nav-link:hover {
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] footer.bg-dark {
+    background-color: #0d1117 !important;
+}
+
+/* Cards y fondos claros de Bootstrap se invierten. */
+[data-bs-theme="dark"] .bg-light {
+    background-color: #2d333b !important;
+    color: #e6edf3;
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #9ba3af !important;
+}
+
+/* ============================================================
+   Botón flotante de cambio de tema
+   ============================================================
+   Fijo en la esquina inferior derecha, sobre cualquier contenido.
+   z-index alto para no quedar bajo modales o el footer.
+   ============================================================ */
+.btn-tema {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: none;
+    background-color: #ffc107;
+    color: #1f2328;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    z-index: 1050;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, background-color 0.2s ease;
+}
+
+.btn-tema:hover {
+    transform: translateY(-2px) rotate(15deg);
+}
+
+.btn-tema:focus {
+    outline: 3px solid rgba(255, 193, 7, 0.4);
+    outline-offset: 2px;
+}
+
+[data-bs-theme="dark"] .btn-tema {
+    background-color: #f0f6fc;
+    color: #1f2328;
+}

@@ -19,6 +19,54 @@
     </footer>
 
     <!-- ============================================================
+         Botón flotante: cambiar entre tema claro y oscuro
+         ============================================================
+         [PEDAGÓGICO] aria-label hace que lectores de pantalla
+         anuncien la acción. aria-pressed refleja el estado actual
+         para tecnología asistiva. -->
+    <button id="btnTema"
+            class="btn-tema"
+            type="button"
+            aria-label="Cambiar entre modo claro y modo oscuro"
+            aria-pressed="false"
+            title="Cambiar tema">
+        <span id="btnTemaIcono" aria-hidden="true">🌙</span>
+    </button>
+
+    <script>
+        (function () {
+            var btn   = document.getElementById('btnTema');
+            var icono = document.getElementById('btnTemaIcono');
+            var html  = document.documentElement;
+
+            // Sincroniza icono y aria-pressed con el tema activo.
+            function reflejarEstado() {
+                var oscuro = html.getAttribute('data-bs-theme') === 'dark';
+                icono.textContent = oscuro ? '☀️' : '🌙';
+                btn.setAttribute('aria-pressed', oscuro ? 'true' : 'false');
+                btn.title = oscuro
+                    ? 'Cambiar a modo claro'
+                    : 'Cambiar a modo oscuro';
+            }
+
+            // El script anti-FOUC del header ya aplicó el tema —
+            // aquí solo dejamos el botón en sincronía con ese estado.
+            reflejarEstado();
+
+            btn.addEventListener('click', function () {
+                var nuevo = html.getAttribute('data-bs-theme') === 'dark'
+                    ? 'light'
+                    : 'dark';
+                html.setAttribute('data-bs-theme', nuevo);
+                try {
+                    localStorage.setItem('tema', nuevo);
+                } catch (e) { /* modo incógnito: ignorar */ }
+                reflejarEstado();
+            });
+        })();
+    </script>
+
+    <!-- ============================================================
          Bootstrap 5.3 JS (CDN)
          ============================================================
          [PEDAGÓGICO] Popper.js es necesario para tooltips, popovers

@@ -6,7 +6,7 @@
     <!-- ============================================================
          Footer
          ============================================================ -->
-    <footer class="bg-dark text-white text-center py-4 mt-5">
+    <footer class="bg-dark text-white text-center py-4 mt-5 fixed-bottom">
         <div class="container">
             <p class="mb-1">
                 &copy; <?= date('Y') ?> <?= SITE_NAME ?>.

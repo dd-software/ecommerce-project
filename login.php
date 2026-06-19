@@ -147,18 +147,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     // ============================================================
-                    // Redirigir según procedencia
+                    // Redirigir al inicio después del login exitoso
                     // ============================================================
-                    // [PEDAGÓGICO] Si el usuario llegó aquí desde otra página
-                    // (ej: checkout), lo redirigimos de vuelta.
-                    $destino = $_POST['redirect'] ?? 'index.php';
-
-                    // Validar que el destino no sea una URL externa (open redirect)
-                    if (strpos($destino, 'http') === 0) {
-                        $destino = 'index.php';
-                    }
-
-                    redireccionar($destino);
+                    redireccionar('index.php');
                 }
             }
         }
@@ -177,13 +168,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ============================================================
-// Determinar página de redirección post-login
-// ============================================================
-$redirect = $_GET['redirect'] ?? 'index.php';
-if (strpos($redirect, 'http') === 0) {
-    $redirect = 'index.php';
-}
 ?>
 
 <!-- ============================================================
@@ -213,8 +197,6 @@ if (strpos($redirect, 'http') === 0) {
                 <form method="POST" action="login.php" novalidate>
                     <!-- Token CSRF -->
                     <input type="hidden" name="_csrf_token" value="<?= csrf_token() ?>">
-                    <!-- Redirección post-login -->
-                    <input type="hidden" name="redirect" value="<?= escapar($redirect) ?>">
 
                     <!-- Campo Email -->
                     <div class="mb-3">

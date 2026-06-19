@@ -19,6 +19,20 @@ require_once __DIR__ . '/includes/header.php';
 $pdo = getDB();
 
 // ============================================================
+// Banner de administración (solo para admins)
+// ============================================================
+if (es_admin()): ?>
+<div class="alert alert-warning alert-dismissible fade show d-flex align-items-center" role="alert">
+    <div class="flex-grow-1">
+        <strong>⚙️ Panel de Administración</strong>
+        Tienes acceso al panel de administración.
+    </div>
+    <a href="admin/index.php" class="btn btn-dark btn-sm">Ir al Panel Admin →</a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+</div>
+<?php endif;
+
+// ============================================================
 // Obtener parámetros de filtro y paginación
 // ============================================================
 // [PEDAGÓGICO] Filtramos y validamos los parámetros GET

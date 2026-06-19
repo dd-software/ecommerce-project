@@ -4,14 +4,13 @@
 # [PEDAGÓGICO] Este archivo de configuración de Apache permite:
 # 1. Bloquear acceso directo a directorios sensibles
 # 2. Proteger includes/ (configuración, funciones, DB)
-# 3. Proteger api/ (endpoints internos que no deben listarse)
+# 3. Permitir acceso AJAX a api/ sin restricciones
 #
 # NOTA: En WAMP/XAMPP, este archivo DEBE estar presente y
 # AllowOverride debe estar en All en httpd.conf para que
-# las directivas <FilesMatch> y Deny from all funcionen.
+# las directivas <FilesMatch> y Require funcionen.
 #
-# Si usas otro servidor (Nginx, IIS), estas reglas son
-# específicas de Apache y deben adaptarse.
+# Compatible con Apache 2.4 (usa sintaxis Require)
 # ============================================================
 
 # ============================================================
@@ -36,44 +35,35 @@ Options -Indexes
 # directamente. Solo deben ser incluidos vía require_once desde
 # otros scripts PHP.
 # ============================================================
-#corrección error htaccess
-#<DirectoryMatch "^/.*/includes/">
-#    Require all denied
-#</DirectoryMatch>
-
-# Alternativa con FilesMatch (más portable):
-# [PEDAGÓGICO] Si tu Apache no soporta DirectoryMatch,
-# esta regla bloquea TODOS los archivos .php dentro de includes/.
-#<FilesMatch "^includes/.*\.php$">
-#    Require all denied
-#</FilesMatch>
+# [PEDAGÓGICO] Bloquear acceso directo a archivos PHP en includes/
+# usando sintaxis compatible con Apache 2.4 (Require all denied)
+<IfModule mod_authz_core.c>
+    <FilesMatch "^includes/.*\.php$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^includes/.*\.php$">
+        Order deny,allow
+        Deny from all
+    </FilesMatch>
+</IfModule>
 
 # ============================================================
-# Bloquear acceso directo a api/
+# Permitir acceso a api/ para peticiones AJAX
 # ============================================================
 # [PEDAGÓGICO] Los endpoints de api/ deben ser consumidos
-# ÚNICAMENTE por JavaScript (AJAX/fetch) desde páginas del
-# mismo sitio, NO mediante acceso directo en el navegador.
-#
-# Sin embargo, para que las peticiones AJAX funcionen, Apache
-# debe permitir el acceso. Por eso usamos DirectoryMatch para
-# denegar SOLO el listado, pero permitir el acceso a archivos
-# individuales.
-#
-# Si queremos bloquear completamente el acceso directo (solo
-# permitir desde scripts internos), usaríamos:
-#   Require host localhost
-# Pero eso rompería las peticiones AJAX desde el frontend.
-#
-# Por ahora solo protegemos contra listado de directorios
-# (Options -Indexes ya lo hace globalmente).
+# por JavaScript (AJAX/fetch) desde el mismo sitio.
+# Se permite el acceso a archivos individuales para que
+# las peticiones AJAX funcionen correctamente.
+# El listado de directorios ya está bloqueado globalmente
+# con Options -Indexes.
 # ============================================================
-# [PEDAGÓGICO] Si en el futuro quieres restringir aún más api/,
-# puedes descomentar estas líneas:
-#
-# <DirectoryMatch "^/.*/api/">
-#     Require all denied
-# </DirectoryMatch>
+<IfModule mod_authz_core.c>
+    <FilesMatch "^api/.*\.php$">
+        Require all granted
+    </FilesMatch>
+</IfModule>
 
 # ============================================================
 # Bloquear acceso a archivos sensibles específicos
@@ -111,10 +101,11 @@ Options -Indexes
 # para dirigir todas las peticiones a index.php.
 # Por ahora, el sitio usa URLs tradicionales (producto.php?id=X).
 #
-# <IfModule mod_rewrite.c>
-#     RewriteEngine On
-#     RewriteRule ^api/(.*)$ api/$1 [L,QSA]
-# </IfModule>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Permitir acceso a archivos de API para peticiones AJAX
+    RewriteRule ^api/(.*)$ api/$1 [L,QSA]
+</IfModule>
 
 # ============================================================
 # Configurar página de error personalizada

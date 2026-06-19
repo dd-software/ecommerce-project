@@ -116,6 +116,13 @@
                                     </a>
                                 </li>
 
+                                <!-- Mi Cuenta: perfil y historial de compras -->
+                                <li>
+                                    <a class="dropdown-item" href="<?= SITE_URL ?>/cuenta.php">
+                                        👤 Mi Cuenta
+                                    </a>
+                                </li>
+
                                 <!-- [PEDAGÓGICO] Solo los administradores
                                      ven el enlace al panel de administración.
                                      La verificación es_role está en cada

@@ -59,6 +59,20 @@ footer {
     color: #9ba3af !important;
 }
 
+/* Nombres de productos: en index.php y producto.php el <a> dentro
+   de .card-title usa .text-dark (negro hard-codeado) que en modo
+   oscuro queda invisible sobre el fondo oscuro del card. Forzamos
+   color claro con color literal y cubrimos cualquier <a> dentro
+   de un .card-title por si más adelante se cambia la clase.
+   No afecta a los badges <span class="bg-warning text-dark"> del
+   panel admin porque la regla apunta a <a>, no a <span>. */
+[data-bs-theme="dark"] .card a.text-dark,
+[data-bs-theme="dark"] .card .card-title a,
+[data-bs-theme="dark"] .card .card-title a:hover,
+[data-bs-theme="dark"] .card .card-title a:focus {
+    color: #e6edf3 !important;
+}
+
 /* ============================================================
    Botón flotante de cambio de tema
    ============================================================

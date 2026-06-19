@@ -284,7 +284,10 @@ try {
             'iva'          => (float) $totales['iva'],
             'envio'        => (float) $totales['envio'],
         ];
-        $respuesta['message'] = '✅ ¡Compra realizada con éxito! Número de orden: ' . $numero_orden;
+        $respuesta['message'] = '✅ ¡Orden creada! Redirigiendo al pago... Número de orden: ' . $numero_orden;
+
+        // Guardar orden_id en sesión para el flujo de pago
+        $_SESSION['orden_pendiente_id'] = $pedido_id;
 
     } catch (Exception $e) {
         // ============================================================
@@ -318,7 +321,7 @@ if ($es_ajax) {
     // Formulario tradicional: redirigir con mensaje en sesión
     if ($respuesta['success']) {
         $_SESSION['exito'] = $respuesta['message'];
-        redireccionar('../exito.php?orden=' . urlencode($respuesta['data']['numero_orden']));
+        redireccionar('../pago.php?orden_id=' . (int) $respuesta['data']['orden_id']);
     } else {
         $_SESSION['error'] = $respuesta['message'];
         redireccionar('../checkout.php');

@@ -5,7 +5,7 @@
 // [PEDAGÓGICO] Los estudiantes aprenden a separar configuración
 // del código. Cambiando estas constantes pueden conectar a
 // cualquier servidor MySQL (localhost, producción, etc.)
-define('DB_HOST', 'localhost');
+define('DB_HOST', '127.0.0.1');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'ecommerce_uct');

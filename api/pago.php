@@ -187,6 +187,9 @@ try {
             // - intent: CAPTURE (captura directa, no autorización)
             // - purchase_units: los items/ montos a cobrar
             // - application_context: URLs de retorno (éxito/cancelación)
+            // NOTA: PayPal Sandbox no soporta CLP, usamos USD.
+            // Convertimos el monto: total CLP / 950 (1 USD ≈ 950 CLP)
+            $monto_usd = round((float) $orden['total'] / 950, 2);
             $body = json_encode([
                 'intent' => 'CAPTURE',
                 'purchase_units' => [
@@ -194,8 +197,8 @@ try {
                         'reference_id' => $orden['numero'],
                         'description'  => 'Compra en ' . SITE_NAME . ' - Orden ' . $orden['numero'],
                         'amount' => [
-                            'currency_code' => 'CLP',
-                            'value'         => number_format((float) $orden['total'], 0, '.', ''),
+                            'currency_code' => 'USD',
+                            'value'         => number_format($monto_usd, 2, '.', ''),
                         ],
                     ],
                 ],
@@ -203,8 +206,8 @@ try {
                     'brand_name'          => SITE_NAME,
                     'landing_page'        => 'NO_PREFERENCE',
                     'user_action'         => 'PAY_NOW',
-                    'return_url'          => SITE_URL . '/api/pago.php?action=capturar',
-                    'cancel_url'          => SITE_URL . '/checkout.php?cancelado=1',
+                    'return_url'          => SITE_URL . '/pago.php?orden_id=' . $orden_id . '&paypal_aprobado=1',
+                    'cancel_url'          => SITE_URL . '/pago.php?orden_id=' . $orden_id . '&paypal_cancelado=1',
                 ],
             ]);
 

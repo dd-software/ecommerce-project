@@ -1,0 +1,258 @@
+/* ============================================================
+   estilos.css — Identidad visual "Tienda real"
+   ============================================================
+   Paleta cálida y vendedora (papaya, baya, dorado, tinta verde)
+   aplicada sobre los componentes Bootstrap ya existentes.
+   No reemplaza Bootstrap: lo retiñe. No requiere cambiar el
+   HTML de las páginas (salvo header.php / admin_header.php).
+   ============================================================ */
+
+/* ---------- Tokens ---------- */
+:root {
+    --color-primary:       #E8602C; /* papaya - marca, botones, navbar  */
+    --color-primary-dark:  #C24A1B;
+    --color-primary-light: #FBE0CC;
+    --color-accent:        #D62839; /* baya - ofertas, descuentos       */
+    --color-accent-dark:   #AE1F2D;
+    --color-gold:          #F2A93B; /* dorado - detalles, destacados    */
+    --color-ink:           #20302E; /* tinta verde oscura - texto/nav   */
+    --color-ink-soft:      #2E4A47;
+    --color-cream:         #FFF8EF; /* fondo cálido                    */
+    --color-success:       #4F7942;
+
+    --font-display: 'Fredoka', system-ui, sans-serif;
+    --font-body:    'Plus Jakarta Sans', system-ui, sans-serif;
+
+    --radius-md: .65rem;
+    --radius-lg: 1rem;
+    --shadow-soft: 0 6px 20px -8px rgba(32, 48, 46, .25);
+
+    /* Re-mapeo de variables runtime de Bootstrap 5.3 */
+    --bs-primary: var(--color-primary);
+    --bs-primary-rgb: 232, 96, 44;
+    --bs-success: var(--color-success);
+    --bs-success-rgb: 79, 121, 66;
+    --bs-danger: var(--color-accent);
+    --bs-danger-rgb: 214, 40, 57;
+    --bs-warning: var(--color-gold);
+    --bs-warning-rgb: 242, 169, 59;
+    --bs-dark: var(--color-ink);
+    --bs-dark-rgb: 32, 48, 46;
+    --bs-body-font-family: var(--font-body);
+    --bs-body-bg: var(--color-cream);
+    --bs-link-color: var(--color-primary-dark);
+    --bs-link-hover-color: var(--color-accent-dark);
+    --bs-border-radius: var(--radius-md);
+    --bs-border-radius-lg: var(--radius-lg);
+}
+
+body {
+    background-color: var(--color-cream);
+    font-family: var(--font-body);
+    color: var(--color-ink);
+}
+
+h1, h2, h3, h4, h5, h6,
+.navbar-brand, .card-title,
+.btn, .display-1, .display-2, .display-3, .display-4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+}
+
+a { color: var(--color-primary-dark); }
+a:hover { color: var(--color-accent-dark); }
+
+/* ---------- Franja festoneada (firma) ---------- */
+/* Evoca el toldo de tela de un puesto de feria/mercado. */
+.toldo-franja {
+    height: 12px;
+    background-image:
+        linear-gradient(135deg, var(--color-gold) 25%, transparent 25.5%),
+        linear-gradient(225deg, var(--color-gold) 25%, transparent 25.5%);
+    background-size: 24px 24px;
+    background-position: 0 0;
+    background-color: var(--color-primary);
+}
+
+/* ---------- Navbar ---------- */
+.navbar {
+    background-color: var(--color-ink) !important;
+    padding-top: .9rem;
+    padding-bottom: .9rem;
+}
+.navbar .navbar-brand {
+    font-size: 1.4rem;
+    letter-spacing: .02em;
+}
+.navbar-nav .nav-link {
+    font-weight: 500;
+    padding: .5rem 1rem !important;
+    border-radius: var(--radius-md);
+    transition: background-color .15s ease, color .15s ease;
+}
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+    background-color: rgba(255, 255, 255, .08);
+    color: #fff !important;
+}
+.navbar .dropdown-menu {
+    border: none;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+}
+.navbar .dropdown-item:active,
+.navbar .dropdown-item:hover {
+    background-color: var(--color-primary-light);
+    color: var(--color-ink);
+}
+#carrito-contador {
+    background-color: var(--color-accent) !important;
+}
+
+/* ---------- Botones ---------- */
+.btn {
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    padding: .5rem 1.25rem;
+}
+.btn-sm { padding: .3rem .9rem; }
+
+.btn-primary {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+}
+.btn-outline-primary {
+    color: var(--color-primary-dark);
+    border-color: var(--color-primary);
+}
+.btn-outline-primary:hover {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+.btn-success {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+}
+.btn-danger {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+/* ---------- Tarjetas ---------- */
+.card {
+    border: none;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+}
+.card-header {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    background-color: #fff;
+    border-bottom: 1px solid rgba(32, 48, 46, .08);
+}
+
+/* "Etiqueta" de tienda en la esquina de las tarjetas de producto */
+.catalogo-productos .card,
+.featured-card {
+    position: relative;
+    overflow: visible;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.catalogo-productos .card:hover,
+.featured-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 28px -10px rgba(32, 48, 46, .35);
+}
+.catalogo-productos .card::before,
+.featured-card::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 18px;
+    width: 26px;
+    height: 26px;
+    background: var(--color-gold);
+    border-radius: 4px 4px 4px 0;
+    transform: rotate(45deg);
+    box-shadow: 0 2px 4px rgba(32, 48, 46, .25);
+    z-index: 2;
+}
+.catalogo-productos .card .card-img-top,
+.featured-card .card-img-top {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    overflow: hidden;
+}
+
+/* ---------- Precios y stock ---------- */
+.fs-5.fw-bold,
+.fw-bold.text-success {
+    color: var(--color-primary-dark) !important;
+    font-family: var(--font-display);
+}
+.text-danger.fw-bold,
+.fs-5.fw-bold.text-danger {
+    color: var(--color-accent) !important;
+}
+
+/* ---------- Hero de destacados ---------- */
+.hero-section {
+    position: relative;
+    padding-top: .5rem;
+}
+
+/* ---------- Formularios ---------- */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 .2rem rgba(232, 96, 44, .18);
+}
+.form-label { font-weight: 600; color: var(--color-ink); }
+
+/* ---------- Alertas ---------- */
+.alert-success { background-color: #EAF3E4; color: var(--color-success); border: none; }
+.alert-danger  { background-color: #FBE3E1; color: var(--color-accent-dark); border: none; }
+.alert-info    { background-color: #FCEFD9; color: #8A5A12; border: none; }
+
+/* ---------- Footer ---------- */
+footer.bg-dark {
+    background-color: var(--color-ink) !important;
+}
+
+/* ============================================================
+   Panel de Administración
+   ============================================================ */
+.admin-sidebar { background: var(--color-ink) !important; }
+.admin-sidebar .sidebar-brand {
+    font-family: var(--font-display);
+    border-bottom-color: rgba(255, 255, 255, .12) !important;
+}
+.admin-sidebar .nav-link:hover,
+.admin-sidebar .nav-link.active {
+    background: rgba(232, 96, 44, .22) !important;
+    color: #fff !important;
+}
+.admin-main { background-color: var(--color-cream) !important; }
+.admin-topbar { background-color: #fff !important; }
+.metric-card { border-left-color: var(--color-primary) !important; }
+.metric-card .metric-icon { color: var(--color-primary); opacity: .35; }
+.stock-bajo { color: var(--color-accent) !important; }
+.stock-normal { color: var(--color-success) !important; }
+.badge.bg-primary { background-color: var(--color-primary) !important; }
+.badge.bg-warning { background-color: var(--color-gold) !important; color: var(--color-ink) !important; }
+.badge.bg-danger { background-color: var(--color-accent) !important; }
+.badge.bg-success { background-color: var(--color-success) !important; }
+
+/* ---------- Accesibilidad: foco visible y movimiento reducido ---------- */
+a:focus-visible, button:focus-visible, .btn:focus-visible, .nav-link:focus-visible {
+    outline: 3px solid var(--color-gold);
+    outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .catalogo-productos .card, .featured-card { transition: none !important; }
+}

@@ -26,6 +26,12 @@
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
+    <!-- Tipografía e identidad visual compartida con el sitio público -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="<?= SITE_URL ?>/assets/css/estilos.css" rel="stylesheet">
+
     <style>
         /* ============================================================
            Estilos para el layout del panel de administración
@@ -44,7 +50,7 @@
             left: 0;
             width: var(--sidebar-width);
             height: 100vh;
-            background: #212529;
+            background: var(--color-ink);
             color: #fff;
             z-index: 1000;
             overflow-y: auto;
@@ -65,7 +71,7 @@
         }
 
         .admin-sidebar .sidebar-brand:hover {
-            color: #0d6efd;
+            color: var(--color-primary);
         }
 
         /* Navegación del sidebar */
@@ -82,7 +88,7 @@
         .admin-sidebar .nav-link:hover,
         .admin-sidebar .nav-link.active {
             color: #fff;
-            background: rgba(13,110,253,0.15);
+            background: rgba(232,96,44,0.22);
         }
 
         .admin-sidebar .nav-link i {
@@ -121,7 +127,7 @@
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: #212529;
+            color: var(--color-ink);
         }
 
         /* Responsive: ocultar sidebar en pantallas pequeñas */
@@ -142,7 +148,7 @@
 
         /* Tarjetas de métricas en el dashboard */
         .metric-card {
-            border-left: 4px solid #0d6efd;
+            border-left: 4px solid var(--color-primary);
             transition: transform 0.2s;
         }
         .metric-card:hover {
@@ -150,7 +156,7 @@
         }
         .metric-card .metric-icon {
             font-size: 2rem;
-            opacity: 0.2;
+            opacity: 0.35;
         }
         .metric-card .metric-value {
             font-size: 1.75rem;

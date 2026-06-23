@@ -110,17 +110,29 @@ if ($accion === 'eliminar' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($id <= 0) {
         $error = 'ID de categoría inválido.';
     } else {
-        // Verificar si hay productos asociados
-        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM productos WHERE categoria_id = :id AND activo = 1");
+        // Verificar si hay productos asociados (activos o inactivos: la FK
+        // de productos.categoria_id no distingue, así que tampoco debemos hacerlo aquí).
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM productos WHERE categoria_id = :id");
         $stmt->execute([':id' => $id]);
         $productos_asociados = (int) $stmt->fetch()['total'];
 
         if ($productos_asociados > 0) {
-            $error = "No se puede eliminar la categoría porque tiene {$productos_asociados} producto(s) asociado(s). Desactívala en su lugar.";
+            $error = "No se puede eliminar la categoría porque tiene {$productos_asociados} producto(s) asociado(s) (activos o inactivos). Desactívala en su lugar.";
         } else {
-            $stmt = $pdo->prepare("DELETE FROM categorias WHERE id = :id");
-            $stmt->execute([':id' => $id]);
-            $mensaje = '🗑️ Categoría eliminada exitosamente.';
+            try {
+                $stmt = $pdo->prepare("DELETE FROM categorias WHERE id = :id");
+                $stmt->execute([':id' => $id]);
+                $mensaje = '🗑️ Categoría eliminada exitosamente.';
+            } catch (PDOException $e) {
+                // Red de seguridad: si de todos modos hay una restricción de
+                // llave foránea (carrera, datos que cambiaron entre el SELECT
+                // y el DELETE, etc.), no dejamos que el error se propague sin control.
+                if ((int) $e->getCode() === 23000) {
+                    $error = 'No se puede eliminar: todavía hay registros asociados a esta categoría.';
+                } else {
+                    throw $e;
+                }
+            }
         }
     }
 }
@@ -243,8 +255,9 @@ require_once __DIR__ . '/admin_header.php';
                                             title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger"
-                                            onclick="eliminarCategoria(<?= (int) $cat['id'] ?>, '<?= escapar($cat['nombre']) ?>')"
+                                    <button class="btn btn-outline-danger btn-eliminar-categoria"
+                                            data-id="<?= (int) $cat['id'] ?>"
+                                            data-nombre="<?= escapar($cat['nombre']) ?>"
                                             title="Eliminar"
                                             <?= $cat['total_productos'] > 0 ? 'disabled' : '' ?>>
                                         <i class="bi bi-trash"></i>
@@ -390,6 +403,14 @@ function eliminarCategoria(id, nombre) {
     document.getElementById('eliminar_nombre').textContent = nombre;
     new bootstrap.Modal(document.getElementById('modalEliminar')).show();
 }
+
+// Los botones "Eliminar" usan data-attributes (no onclick interpolado) para
+// que nombres con comillas/apóstrofes no rompan el atributo HTML.
+document.querySelectorAll('.btn-eliminar-categoria').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        eliminarCategoria(this.dataset.id, this.dataset.nombre);
+    });
+});
 </script>
 
 <?php
@@ -403,8 +424,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('modalTitulo').textContent = 'Editar Categoría';
     document.getElementById('accion_modal').value = 'editar';
     document.getElementById('categoria_id').value = <?= (int) $editar_categoria['id'] ?>;
-    document.getElementById('nombre').value = '<?= escapar($editar_categoria['nombre']) ?>';
-    document.getElementById('descripcion').value = '<?= escapar($editar_categoria['descripcion'] ?? '') ?>';
+    document.getElementById('nombre').value = <?= json_encode($editar_categoria['nombre'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    document.getElementById('descripcion').value = <?= json_encode($editar_categoria['descripcion'] ?? '', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     document.getElementById('orden').value = <?= (int) ($editar_categoria['orden'] ?? 0) ?>;
     document.getElementById('activa').checked = <?= (int) ($editar_categoria['activa'] ?? 1) === 1 ? 'true' : 'false' ?>;
     document.getElementById('btnGuardar').textContent = 'Actualizar';

@@ -11,13 +11,13 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
-
 // Verificar que el usuario esté logueado
 if (!esta_logueado()) {
     $_SESSION['error'] = 'Debes iniciar sesión para ver tu cuenta.';
     redireccionar('login.php?redirect=cuenta.php');
 }
+
+require_once __DIR__ . '/includes/header.php';
 
 $pdo = getDB();
 $usuario_id = (int) $_SESSION['usuario_id'];

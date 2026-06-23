@@ -13,8 +13,6 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
-
 $pdo    = getDB();
 $error  = '';
 $email  = '';
@@ -184,6 +182,8 @@ $redirect = $_GET['redirect'] ?? 'index.php';
 if (strpos($redirect, 'http') === 0) {
     $redirect = 'index.php';
 }
+
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <!-- ============================================================

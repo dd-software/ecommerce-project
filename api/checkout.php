@@ -60,7 +60,14 @@ try {
     if (!csrf_validar($token)) {
         throw new Exception('Error de seguridad. Token CSRF inválido.');
     }
+    // ============================================================
+    // 3.5 Validar pago de PayPal (Nuevo paso obligatorio)
+    // ============================================================
+    $paypal_order_id = $_POST['paypal_order_id'] ?? null;
 
+    if (!$paypal_order_id) {
+     throw new Exception('El pago no ha sido confirmado por PayPal.');
+}   
     // ============================================================
     // 3. Validar datos de dirección de envío
     // ============================================================
@@ -105,6 +112,12 @@ try {
     // [PEDAGÓGICO] Antes de crear la orden, verificamos que cada
     // producto tenga stock suficiente. Esto evita que un producto
     // se agote entre que el usuario lo agregó al carrito y ahora.
+    //
+    // [PEDAGÓGICO - OBJ-06] Primero liberamos reservas vencidas
+    // (>10 min sin confirmar) para que el stock disponible refleje
+    // lo que realmente se puede vender en este instante.
+    liberar_reservas_expiradas($pdo);
+
     $errores_stock = [];
 
     foreach ($items as $item) {
@@ -271,6 +284,11 @@ try {
         // 13. COMMIT: Confirmar la transacción
         // ============================================================
         $pdo->commit();
+
+        // [PEDAGÓGICO - OBJ-06] La compra terminó OK: limpiamos la
+        // marca de countdown de la sesión para que el próximo
+        // checkout del usuario arranque con un timer fresco.
+        unset($_SESSION['checkout_expira_at']);
 
         // ============================================================
         // Respuesta exitosa

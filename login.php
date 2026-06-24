@@ -13,14 +13,14 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
+// 🚨 CORRECCIÓN CRÍTICA: Se quitó el header.php de aquí para evitar el "Headers already sent"
 
 $pdo    = getDB();
 $error  = '';
 $email  = '';
 
 // ============================================================
-// Procesar formulario POST
+// Procesar formulario POST (Lógica pura de datos - Sin HTML previo)
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validar token CSRF
@@ -31,12 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email    = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        // ============================================================
         // Rate Limiting: controlar intentos fallidos
-        // ============================================================
-        // [PEDAGÓGICO] Guardamos en sesión el número de intentos
-        // y el timestamp del primero. Si supera 5 intentos en
-        // menos de 15 minutos, bloqueamos temporalmente.
         if (!isset($_SESSION['login_intentos'])) {
             $_SESSION['login_intentos'] = 0;
             $_SESSION['login_bloqueo_hasta'] = null;
@@ -48,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $minutos_restantes = ceil(($_SESSION['login_bloqueo_hasta'] - time()) / 60);
                 $error = "⏱️ Demasiados intentos. Espera {$minutos_restantes} minuto(s).";
             } else {
-                // Reiniciar contador si pasó el tiempo de bloqueo
                 $_SESSION['login_intentos'] = 0;
                 $_SESSION['login_bloqueo_hasta'] = null;
             }
@@ -56,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Si no hay error de rate limiting, validar credenciales
         if (empty($error)) {
-            // Validar que los campos no estén vacíos
             if (empty($email) || empty($password)) {
                 $error = 'Por favor ingresa tu email y contraseña.';
             } else {
@@ -69,24 +62,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([':email' => $email]);
                 $usuario = $stmt->fetch();
 
-                // ============================================================
                 // Validaciones de seguridad
-                // ============================================================
                 if (!$usuario) {
-                    // Email no registrado
                     $error = 'Email o contraseña incorrectos.';
                 } elseif ((int) $usuario['activo'] !== 1) {
-                    // Usuario desactivado
                     $error = 'Tu cuenta está desactivada. Contacta al administrador.';
                 } elseif (!password_verify($password, $usuario['password'])) {
-                    // Contraseña incorrecta
                     $error = 'Email o contraseña incorrectos.';
                 } else {
                     // ============================================================
                     // LOGIN EXITOSO
                     // ============================================================
-                    // [PEDAGÓGICO] Almacenamos datos básicos en sesión.
-                    // NUNCA guardamos la contraseña en sesión.
                     $_SESSION['usuario_id']     = (int) $usuario['id'];
                     $_SESSION['usuario_nombre'] = $usuario['nombre'];
                     $_SESSION['usuario_email']  = $usuario['email'];
@@ -104,12 +90,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unset($_SESSION['login_intentos']);
                     unset($_SESSION['login_bloqueo_hasta']);
 
-                    // Migrar carrito de sesión a BD si existen items
+                    // ============================================================
+                    // [MIGRACIÓN] Pasar items de carrito de sesión a la BD
+                    // ============================================================
                     if (!empty($_SESSION['carrito'])) {
                         foreach ($_SESSION['carrito'] as $prod_id => $item) {
-                            // Verificar si ya existe en BD
                             $stmt = $pdo->prepare("
-                                SELECT id FROM items_carrito
+                                SELECT id, cantidad FROM items_carrito
                                 WHERE usuario_id = :uid AND producto_id = :pid
                             ");
                             $stmt->execute([
@@ -142,34 +129,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 ]);
                             }
                         }
-                        // Limpiar carrito de sesión
                         unset($_SESSION['carrito']);
                     }
 
-                    // ============================================================
-                    // Redirigir según procedencia
-                    // ============================================================
-                    // [PEDAGÓGICO] Si el usuario llegó aquí desde otra página
-                    // (ej: checkout), lo redirigimos de vuelta.
+                    // Determinar redirección segura
                     $destino = $_POST['redirect'] ?? 'index.php';
-
-                    // Validar que el destino no sea una URL externa (open redirect)
-                    if (strpos($destino, 'http') === 0) {
+                    if (strpos($destino, 'http') === 0 || empty($destino)) {
                         $destino = 'index.php';
                     }
 
+                    // Ahora sí funcionará sin errores, porque no se ha impreso ni una pizca de HTML
                     redireccionar($destino);
+                    exit;
                 }
             }
         }
 
-        // ============================================================
-        // Si llegamos aquí, hubo error: incrementar contador
-        // ============================================================
+        // Incrementar intentos si hubo error
         if (!empty($error)) {
             $_SESSION['login_intentos']++;
             if ($_SESSION['login_intentos'] >= 5) {
-                // Bloquear por 15 minutos
                 $_SESSION['login_bloqueo_hasta'] = time() + (15 * 60);
                 $error = '⏱️ Demasiados intentos. Espera 15 minutos.';
             }
@@ -177,32 +156,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ============================================================
-// Determinar página de redirección post-login
-// ============================================================
-$redirect = $_GET['redirect'] ?? 'index.php';
+// Determinar página de redirección desde la URL (GET)
+$redirect = $_GET['redirect'] ?? ($_GET['redirigir'] ?? 'index.php');
 if (strpos($redirect, 'http') === 0) {
     $redirect = 'index.php';
 }
+
+// ============================================================
+// INCORPORACIÓN DEL RENDERIZADO VISUAL
+// ============================================================
+// 🚨 CORRECCIÓN CRÍTICA: Se llama al header justo aquí, cuando ya terminamos de procesar posibles redirecciones
+require_once __DIR__ . '/includes/header.php';
 ?>
 
-<!-- ============================================================
-     Formulario de Inicio de Sesión
-     ============================================================ -->
 <div class="row justify-content-center">
     <div class="col-md-6 col-lg-5">
         <div class="card shadow-sm">
             <div class="card-body p-4">
                 <h2 class="text-center mb-4">🔑 Iniciar Sesión</h2>
 
-                <!-- Mensaje de error -->
                 <?php if ($error): ?>
                     <div class="alert alert-danger" role="alert">
                         <?= escapar($error) ?>
                     </div>
                 <?php endif; ?>
 
-                <!-- Mensaje informativo si ya está logueado -->
                 <?php if (esta_logueado()): ?>
                     <div class="alert alert-info" role="alert">
                         Ya has iniciado sesión como <strong><?= escapar($_SESSION['usuario_nombre']) ?></strong>.
@@ -211,12 +189,9 @@ if (strpos($redirect, 'http') === 0) {
                 <?php else: ?>
 
                 <form method="POST" action="login.php" novalidate>
-                    <!-- Token CSRF -->
                     <input type="hidden" name="_csrf_token" value="<?= csrf_token() ?>">
-                    <!-- Redirección post-login -->
                     <input type="hidden" name="redirect" value="<?= escapar($redirect) ?>">
 
-                    <!-- Campo Email -->
                     <div class="mb-3">
                         <label for="email" class="form-label">📧 Correo electrónico</label>
                         <input type="email"
@@ -229,7 +204,6 @@ if (strpos($redirect, 'http') === 0) {
                                autofocus>
                     </div>
 
-                    <!-- Campo Contraseña -->
                     <div class="mb-3">
                         <label for="password" class="form-label">🔒 Contraseña</label>
                         <input type="password"
@@ -240,12 +214,10 @@ if (strpos($redirect, 'http') === 0) {
                                required>
                     </div>
 
-                    <!-- Botón de envío -->
                     <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
                         🔓 Iniciar Sesión
                     </button>
 
-                    <!-- Enlace a registro -->
                     <p class="text-center mb-0">
                         ¿No tienes cuenta?
                         <a href="registro.php" class="text-decoration-none">Regístrate aquí</a>

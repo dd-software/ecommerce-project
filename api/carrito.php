@@ -189,6 +189,11 @@ try {
 
             $respuesta['success'] = true;
             $respuesta['message'] = '✅ Producto agregado al carrito.';
+            // [OBJ-06] Recién aquí — después de validar stock e insertar
+            // con éxito — invalidamos el countdown del checkout. Si la
+            // validación de stock fallara más arriba, salimos por
+            // Exception y el timer NO se toca.
+            unset($_SESSION['checkout_expira_at']);
             break;
 
         // ============================================================
@@ -237,6 +242,8 @@ try {
 
             $respuesta['success'] = true;
             $respuesta['message'] = '✅ Cantidad actualizada.';
+            // [OBJ-06] El carrito cambió: reset del countdown.
+            unset($_SESSION['checkout_expira_at']);
             break;
 
         // ============================================================
@@ -269,6 +276,8 @@ try {
 
             $respuesta['success'] = true;
             $respuesta['message'] = '🗑️ Producto eliminado del carrito.';
+            // [OBJ-06] Item eliminado: reset del countdown.
+            unset($_SESSION['checkout_expira_at']);
             break;
 
         // ============================================================
@@ -287,6 +296,8 @@ try {
 
             $respuesta['success'] = true;
             $respuesta['message'] = '🗑️ Carrito vaciado.';
+            // [OBJ-06] Carrito vaciado: reset del countdown.
+            unset($_SESSION['checkout_expira_at']);
             break;
 
         // ============================================================

@@ -14,7 +14,8 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
+// CORRECCIÓN REQUERIDA: Eliminamos la llamada prematura de header.php de esta sección 
+// para evitar que se envíe salida HTML antes de ejecutar las funciones de redirección.
 
 $pdo   = getDB();
 $error = '';
@@ -83,8 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ============================================================
         // [PEDAGÓGICO] Requisitos mínimos:
         // - 8+ caracteres
-        // - Al menos 1 mayúscula
-        // - Al menos 1 número
+// - Al menos 1 mayúscula
+// - Al menos 1 número
         if (empty($password)) {
             $errores[] = 'La contraseña es obligatoria.';
         } elseif (strlen($password) < 8) {
@@ -140,11 +141,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// SOLUCIÓN UBICACIÓN EXACTA: Cargamos la cabecera visual de la interfaz justo aquí, 
+// una vez completadas con éxito todas las lógicas de procesamiento y redirección de PHP.
+require_once __DIR__ . '/includes/header.php';
 ?>
 
-<!-- ============================================================
-     Formulario de Registro
-     ============================================================ -->
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="card shadow-sm">
@@ -152,7 +154,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h2 class="text-center mb-4">📝 Crear Cuenta</h2>
 
                 <?php if (esta_logueado()): ?>
-                    <!-- Si el usuario ya está logueado -->
                     <div class="alert alert-info" role="alert">
                         Ya tienes una sesión activa como
                         <strong><?= escapar($_SESSION['usuario_nombre']) ?></strong>.
@@ -160,7 +161,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php else: ?>
 
-                <!-- Mensaje de error -->
                 <?php if ($error): ?>
                     <div class="alert alert-danger" role="alert">
                         <?= $error ?>
@@ -168,11 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form method="POST" action="registro.php" novalidate>
-                    <!-- Token CSRF -->
                     <input type="hidden" name="_csrf_token" value="<?= csrf_token() ?>">
 
                     <div class="row">
-                        <!-- Nombre -->
                         <div class="col-md-6 mb-3">
                             <label for="nombre" class="form-label">👤 Nombre</label>
                             <input type="text"
@@ -184,7 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    required>
                         </div>
 
-                        <!-- Apellido -->
                         <div class="col-md-6 mb-3">
                             <label for="apellido" class="form-label">👤 Apellido</label>
                             <input type="text"
@@ -197,7 +194,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
-                    <!-- Email -->
                     <div class="mb-3">
                         <label for="email" class="form-label">📧 Correo electrónico</label>
                         <input type="email"
@@ -209,7 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                required>
                     </div>
 
-                    <!-- Contraseña -->
                     <div class="mb-3">
                         <label for="password" class="form-label">🔒 Contraseña</label>
                         <input type="password"
@@ -224,7 +219,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
-                    <!-- Confirmar Contraseña -->
                     <div class="mb-4">
                         <label for="confirmar_password" class="form-label">🔒 Confirmar contraseña</label>
                         <input type="password"
@@ -235,12 +229,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                required>
                     </div>
 
-                    <!-- Botón de envío -->
                     <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
                         📝 Crear Cuenta
                     </button>
 
-                    <!-- Enlace a login -->
                     <p class="text-center mb-0">
                         ¿Ya tienes cuenta?
                         <a href="login.php" class="text-decoration-none">Inicia sesión aquí</a>

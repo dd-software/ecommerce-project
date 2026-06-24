@@ -1,11 +1,31 @@
 <!DOCTYPE html>
 <html lang="es">
+<script src="https://www.paypal.com/sdk/js?client-id=TU_CLIENT_ID_DE_PAYPAL&currency=USD"></script>
 <head>
     <!-- ============================================================
          Meta Tags Básicos
          ============================================================ -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- [PEDAGÓGICO] Aplicar el tema guardado ANTES de renderizar
+         el resto del head/body evita el "flash" del tema claro
+         cuando el usuario tiene preferencia por el oscuro.
+         Lee localStorage.tema o, si no existe, la preferencia del
+         sistema (prefers-color-scheme). -->
+    <script>
+        (function () {
+            try {
+                var temaGuardado = localStorage.getItem('tema');
+                var prefiereOscuro = window.matchMedia &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var tema = temaGuardado || (prefiereOscuro ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-bs-theme', tema);
+            } catch (e) {
+                // localStorage puede fallar en modo incógnito — ignorar.
+            }
+        })();
+    </script>
 
     <!-- [PEDAGÓGICO] Meta tag CSRF para peticiones AJAX.
          JavaScript puede leer este valor y enviarlo en cabeceras
@@ -34,6 +54,9 @@
          crea el archivo assets/css/estilos.css y descomenta la línea.
          Por ahora Bootstrap 5.3 es suficiente para todo el diseño. -->
     <!-- <link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/estilos.css"> -->
+
+    <!-- Estilos del toggle de tema claro/oscuro -->
+    <link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/tema.css">
 
     <!-- ============================================================
          jQuery 3.7 CDN

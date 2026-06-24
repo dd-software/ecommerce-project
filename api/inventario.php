@@ -12,6 +12,7 @@
 //   reservar  (POST) -> Reservar stock con expiración (transacción)
 //   liberar   (POST) -> Liberar reservas activas de una orden
 //   confirmar (POST) -> Descontar stock definitivo (transacción)
+//   expirar   (POST) -> Liberar todas las reservas vencidas (cron/admin)
 //
 // Cada acción devuelve JSON: {success: bool, data?: mixed, message: string}
 // ============================================================
@@ -29,6 +30,11 @@ $respuesta = [
     'data'    => [],
     'message' => '',
 ];
+
+// [PEDAGÓGICO] Auto-cleanup: en cada llamada al API de inventario
+// liberamos primero las reservas vencidas. Así el cálculo de stock
+// disponible siempre refleja la realidad sin depender de un cron.
+liberar_reservas_expiradas($pdo);
 
 try {
     // ============================================================
@@ -558,6 +564,39 @@ try {
                 $pdo->rollBack();
                 throw $e;
             }
+            break;
+
+        // ============================================================
+        // EXPIRAR: Liberar manualmente todas las reservas vencidas (POST)
+        // ============================================================
+        // [PEDAGÓGICO] Acción pensada para que el admin (o un cron)
+        // dispare la limpieza global de reservas que pasaron de los
+        // RESERVA_MINUTOS sin confirmarse. El API ya hace auto-cleanup
+        // en cada llamada, pero esta acción permite forzarlo y reportar
+        // cuántas reservas se liberaron.
+        // ============================================================
+        case 'expirar':
+            if ($method !== 'POST') {
+                throw new Exception('Usa POST para esta acción.');
+            }
+
+            $token = $_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+            if (!csrf_validar($token)) {
+                throw new Exception('Error de seguridad. Token CSRF inválido.');
+            }
+
+            // El auto-cleanup ya corrió al inicio del archivo, pero lo
+            // ejecutamos otra vez para capturar reservas que vencieron
+            // entre medio y poder reportar el conteo de esta llamada.
+            $liberadas = liberar_reservas_expiradas($pdo);
+
+            $respuesta['success'] = true;
+            $respuesta['data'] = [
+                'reservas_liberadas' => $liberadas,
+            ];
+            $respuesta['message'] = $liberadas > 0
+                ? "✅ Se liberaron {$liberadas} reserva(s) vencida(s)."
+                : 'No había reservas vencidas que liberar.';
             break;
 
         // ============================================================

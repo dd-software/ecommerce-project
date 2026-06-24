@@ -24,7 +24,7 @@ $producto_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 if ($producto_id <= 0) {
     $_SESSION['error'] = 'ID de producto inválido.';
-    redireccionar('index.php');
+    redireccionar('catalogo.php');
 }
 
 // ============================================================
@@ -44,7 +44,21 @@ $producto = $stmt->fetch();
 // Si el producto no existe o no está activo
 if (!$producto) {
     $_SESSION['error'] = 'Producto no encontrado.';
-    redireccionar('index.php');
+    redireccionar('catalogo.php');
+}
+
+// ============================================================
+// Registrar "últimos vistos" (solo para usuarios con sesión iniciada)
+// ============================================================
+// [PEDAGÓGICO] Guardamos el id al principio de la lista, sacamos
+// duplicados y limitamos el historial a 8 productos (el home solo
+// muestra los primeros 4, pero guardamos algunos más por si el
+// usuario vuelve a ver alguno de los anteriores).
+if (esta_logueado()) {
+    $vistos = $_SESSION['ultimos_vistos'] ?? [];
+    $vistos = array_values(array_diff($vistos, [$producto_id]));
+    array_unshift($vistos, $producto_id);
+    $_SESSION['ultimos_vistos'] = array_slice($vistos, 0, 8);
 }
 
 // ============================================================
@@ -75,11 +89,11 @@ if (empty($imagenes)) {
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb bg-light p-3 rounded">
         <li class="breadcrumb-item">
-            <a href="index.php" class="text-decoration-none">Inicio</a>
+            <a href="catalogo.php" class="text-decoration-none">Inicio</a>
         </li>
         <?php if (!empty($producto['categoria_nombre'])): ?>
         <li class="breadcrumb-item">
-            <a href="index.php?categoria=<?= (int) $producto['categoria_id'] ?>"
+            <a href="catalogo.php?categoria=<?= (int) $producto['categoria_id'] ?>"
                class="text-decoration-none">
                 <?= escapar($producto['categoria_nombre']) ?>
             </a>

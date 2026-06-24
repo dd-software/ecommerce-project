@@ -159,7 +159,7 @@ $estados = ['pendiente', 'confirmado', 'en_proceso', 'enviado', 'entregado', 'ca
                 <br><a href="cuenta.php" class="btn btn-outline-primary btn-sm mt-2">Mostrar todos</a>
             <?php else: ?>
                 Aún no has realizado ninguna compra.
-                <br><a href="index.php" class="btn btn-primary btn-sm mt-2">Ir al catálogo</a>
+                <br><a href="catalogo.php" class="btn btn-primary btn-sm mt-2">Ir al catálogo</a>
             <?php endif; ?>
         </p>
     </div>

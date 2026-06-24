@@ -214,6 +214,55 @@ $(document).ready(function () {
     });
 
     // ============================================================
+    // Botón "Agregar al carrito" del catálogo (index.php)
+    // ============================================================
+    // [PEDAGÓGICO] A diferencia de producto.php, estos botones no
+    // viven dentro de un <form>: son botones sueltos con
+    // data-producto-id y data-cantidad="1". Usamos delegación de
+    // eventos (document.on) para que funcione sin importar cuántas
+    // tarjetas haya en la grilla.
+    // ============================================================
+    $(document).on('click', '.agregar-carrito', function () {
+        var $btn = $(this);
+        var productoId = $btn.data('productoId');
+        var cantidad = $btn.data('cantidad') || 1;
+
+        if (!productoId || productoId <= 0) {
+            mostrarMensajeError('Error: ID de producto inválido.');
+            return;
+        }
+
+        var textoOriginal = $btn.html();
+        $btn.prop('disabled', true).text('⏳ Agregando...');
+
+        $.ajax({
+            url: 'api/carrito.php',
+            method: 'POST',
+            data: {
+                action: 'agregar',
+                producto_id: productoId,
+                cantidad: cantidad,
+                _csrf_token: csrfToken
+            },
+            dataType: 'json',
+            success: function (respuesta) {
+                if (respuesta.success) {
+                    actualizarBadgeCarrito(true);
+                } else {
+                    mostrarMensajeError(respuesta.message || 'Error al agregar producto.');
+                }
+            },
+            error: function (xhr, status, error) {
+                mostrarMensajeError('Error de conexión. Intenta de nuevo.');
+                console.error('Error agregar carrito:', error);
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html(textoOriginal);
+            }
+        });
+    });
+
+    // ============================================================
     // 2. ACTUALIZAR CANTIDAD (Desde carrito.php - input change)
     // ============================================================
     // [PEDAGÓGICO] En la página carrito.php, cuando el usuario cambia

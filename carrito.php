@@ -302,7 +302,7 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
         <div style="font-size: 4rem;">🛒</div>
         <h4>Tu carrito está vacío</h4>
         <p class="mb-3">Agrega productos desde el catálogo para empezar a comprar.</p>
-        <a href="index.php" class="btn btn-primary">🛍️ Ir al catálogo</a>
+        <a href="catalogo.php" class="btn btn-primary">🛍️ Ir al catálogo</a>
     </div>
 <?php else: ?>
     <!-- ============================================================
@@ -406,7 +406,7 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
         <!-- Columna izquierda: botones de acción -->
         <div class="col-md-6 mb-3">
             <div class="d-flex gap-2">
-                <a href="index.php" class="btn btn-outline-primary">
+                <a href="catalogo.php" class="btn btn-outline-primary">
                     🛍️ Seguir comprando
                 </a>
                 <form method="POST" action="carrito.php"

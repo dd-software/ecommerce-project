@@ -206,7 +206,35 @@ a:hover { color: var(--color-accent-dark); }
     padding-top: .5rem;
 }
 
+/* ---------- Banner de bienvenida (home) ---------- */
+.hero-bienvenida {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-gold) 100%);
+    color: #fff;
+}
+.hero-bienvenida .lead { color: rgba(255, 255, 255, .92); }
+.hero-bienvenida .btn-primary {
+    background-color: var(--color-ink);
+    border-color: var(--color-ink);
+}
+.hero-bienvenida .btn-primary:hover {
+    background-color: #15211f;
+    border-color: #15211f;
+}
+
 /* ---------- Formularios ---------- */
+/* Quita las flechas nativas del navegador en los selectores de
+   cantidad que ya tienen sus propios botones +/-, para no duplicar
+   el control (se ven dos pares de flechas si no se hace esto). */
+.input-group input[type="number"] {
+    -moz-appearance: textfield;
+    text-align: center;
+}
+.input-group input[type="number"]::-webkit-outer-spin-button,
+.input-group input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 .form-control:focus,
 .form-select:focus {
     border-color: var(--color-primary);

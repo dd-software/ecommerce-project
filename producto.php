@@ -30,7 +30,7 @@ if ($producto_id <= 0) {
 // ============================================================
 $stmt = $pdo->prepare("
     SELECT p.*, c.nombre as categoria_nombre, c.id as categoria_id,
-           inv.cantidad as stock
+           (inv.cantidad - inv.cantidad_reservada) as stock
     FROM productos p
     LEFT JOIN categorias c ON c.id = p.categoria_id
     LEFT JOIN inventario inv ON inv.producto_id = p.id
@@ -266,7 +266,7 @@ require_once __DIR__ . '/includes/header.php';
 <?php
 $stmt = $pdo->prepare("
     SELECT p.*, i.url as imagen_url, i.alt_text,
-           inv.cantidad as stock
+           (inv.cantidad - inv.cantidad_reservada) as stock
     FROM productos p
     LEFT JOIN (
         SELECT producto_id, url, alt_text

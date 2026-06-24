@@ -34,7 +34,7 @@ $offset      = ($pagina - 1) * $por_pagina;
 // se muestran en un carousel/cards al inicio.
 $stmt = $pdo->query("
     SELECT p.*, i.url as imagen_url, i.alt_text,
-           inv.cantidad as stock
+           (inv.cantidad - inv.cantidad_reservada) as stock
     FROM productos p
     LEFT JOIN (
         SELECT producto_id, url, alt_text
@@ -215,7 +215,7 @@ require_once __DIR__ . '/includes/header.php';
     // ============================================================
     $stmt = $pdo->prepare("
         SELECT p.*, i.url as imagen_url, i.alt_text,
-               inv.cantidad as stock,
+               (inv.cantidad - inv.cantidad_reservada) as stock,
                c.nombre as categoria_nombre
         FROM productos p
         LEFT JOIN (

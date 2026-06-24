@@ -199,7 +199,7 @@ CREATE TABLE items_carrito (
 CREATE TABLE pedidos (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     numero              VARCHAR(20)     NOT NULL UNIQUE COMMENT 'Formato: ORD-2026-00001',
-    usuario_id          INT             NOT NULL,
+    usuario_id          INT             DEFAULT NULL COMMENT 'NULL si la orden pertenece a un invitado',
     estado              ENUM(
                             'pendiente',
                             'confirmado',
@@ -396,7 +396,23 @@ UNION ALL
 SELECT id, 60, 0, 10 FROM productos WHERE sku = 'ROP-001';
 
 -- ---------------------------------------------------------------------------
--- 5. Configuración del sistema
+-- 5. Imágenes principales de productos
+-- ---------------------------------------------------------------------------
+INSERT INTO imagenes (producto_id, url, alt_text, es_principal, orden)
+SELECT id, 'Audífonos Bluetooth Pro.jpg', 'Audífonos Bluetooth Pro', 1, 0 FROM productos WHERE sku = 'TEC-001'
+UNION ALL
+SELECT id, 'Cargador USB-C 65W GaN.jpg', 'Cargador USB-C 65W GaN', 1, 0 FROM productos WHERE sku = 'TEC-002'
+UNION ALL
+SELECT id, 'Lámpara LED Inteligente.jpg', 'Lámpara LED Inteligente', 1, 0 FROM productos WHERE sku = 'HOG-001'
+UNION ALL
+SELECT id, 'Set de Sartenes Antiadherentes.jpg', 'Set de Sartenes Antiadherentes', 1, 0 FROM productos WHERE sku = 'HOG-002'
+UNION ALL
+SELECT id, 'Botella Térmica Acero 750ml.jpg', 'Botella Térmica Acero 750ml', 1, 0 FROM productos WHERE sku = 'DEP-001'
+UNION ALL
+SELECT id, 'Polera Algodón Orgánico.jpg', 'Polera Algodón Orgánico', 1, 0 FROM productos WHERE sku = 'ROP-001';
+
+-- ---------------------------------------------------------------------------
+-- 6. Configuración del sistema
 -- ---------------------------------------------------------------------------
 INSERT INTO configuracion (clave, valor) VALUES
 ('moneda',                  'CLP'),

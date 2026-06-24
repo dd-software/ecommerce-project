@@ -326,7 +326,7 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                     <!-- Imagen pequeña del producto -->
                     <td>
                         <?php if (!empty($item['imagen_url'])): ?>
-                            <img src="<?= escapar($item['imagen_url']) ?>"
+                            <img src="<?= escapar(ruta_imagen_producto($item['imagen_url'])) ?>"
                                  alt="<?= escapar($item['alt_text'] ?? $item['nombre']) ?>"
                                  class="img-thumbnail"
                                  style="width: 60px; height: 60px; object-fit: cover;">
@@ -450,9 +450,9 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                         </span>
                     </div>
 
-                    <!-- Botón "Ir a pagar" -->
+                    <!-- Botón "Confirmar Compra" -->
                     <a href="checkout.php" class="btn btn-success btn-lg w-100">
-                        💳 Ir a pagar
+                        ✅ Confirmar Compra
                     </a>
                 </div>
             </div>

@@ -65,7 +65,7 @@ $destacados = $stmt->fetchAll();
                     <div class="card-img-top bg-light d-flex align-items-center justify-content-center"
                          style="height: 220px; overflow: hidden;">
                         <?php if (!empty($prod['imagen_url'])): ?>
-                            <img src="<?= escapar($prod['imagen_url']) ?>"
+                            <img src="<?= escapar(ruta_imagen_producto($prod['imagen_url'])) ?>"
                                  alt="<?= escapar($prod['alt_text'] ?? $prod['nombre']) ?>"
                                  class="img-fluid"
                                  style="max-height: 100%; object-fit: contain;">
@@ -270,7 +270,7 @@ $destacados = $stmt->fetchAll();
                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center"
                              style="height: 200px; overflow: hidden;">
                             <?php if (!empty($prod['imagen_url'])): ?>
-                                <img src="<?= escapar($prod['imagen_url']) ?>"
+                                <img src="<?= escapar(ruta_imagen_producto($prod['imagen_url'])) ?>"
                                      alt="<?= escapar($prod['alt_text'] ?? $prod['nombre']) ?>"
                                      class="img-fluid"
                                      style="max-height: 100%; object-fit: contain;">

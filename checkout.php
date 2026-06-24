@@ -2,53 +2,81 @@
 // ============================================================
 // Checkout (Paso final de compra)
 // ============================================================
-// [PEDAGÓGICO] Esta página requiere que el usuario esté
-// logueado. Muestra el resumen del carrito y un formulario
-// para la dirección de envío. El botón "Confirmar compra"
-// enviará los datos a api/checkout.php para procesar.
+// [PEDAGÓGICO] Esta página permite pagar como invitado o
+// como usuario autenticado. Muestra el resumen del carrito y
+// un formulario para la dirección de envío. El botón
+// "Confirmar compra" enviará los datos a api/checkout.php.
 // ============================================================
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
-
 $pdo = getDB();
 
 // ============================================================
-// Verificar autenticación
+// Cargar items del carrito del usuario o invitado
 // ============================================================
-// [PEDAGÓGICO] Si el usuario no ha iniciado sesión, lo
-// redirigimos al login. Le pasamos la URL actual como
-// 'redirect' para que vuelva aquí después de loguearse.
-if (!esta_logueado()) {
-    $_SESSION['error'] = 'Debes iniciar sesión para continuar con la compra.';
-    redireccionar('login.php?redirect=' . urlencode('checkout.php'));
+// [PEDAGÓGICO] Permitimos el checkout como invitado si el
+// usuario no ha iniciado sesión. El carrito de invitados se
+// guarda en sesión y el carrito de usuarios en la base de datos.
+$items_carrito = [];
+
+if (esta_logueado()) {
+    $stmt = $pdo->prepare("
+        SELECT ic.*, p.nombre, p.sku,
+               i.url as imagen_url, i.alt_text
+        FROM items_carrito ic
+        JOIN productos p ON p.id = ic.producto_id
+        LEFT JOIN (
+            SELECT producto_id, url, alt_text
+            FROM imagenes
+            WHERE es_principal = 1
+        ) i ON i.producto_id = ic.producto_id
+        WHERE ic.usuario_id = :uid
+        ORDER BY ic.fecha_agregado ASC
+    ");
+    $stmt->execute([':uid' => $_SESSION['usuario_id']]);
+    $items_carrito = $stmt->fetchAll();
+} else {
+    if (!empty($_SESSION['carrito'])) {
+        $ids = array_keys($_SESSION['carrito']);
+        if (!empty($ids)) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $pdo->prepare("
+                SELECT p.id, p.nombre, p.sku, p.precio, p.precio_descuento,
+                       i.url as imagen_url, i.alt_text
+                FROM productos p
+                LEFT JOIN (
+                    SELECT producto_id, url, alt_text
+                    FROM imagenes
+                    WHERE es_principal = 1
+                ) i ON i.producto_id = p.id
+                WHERE p.id IN ($placeholders) AND p.activo = 1
+            ");
+            $stmt->execute($ids);
+            $productos_db = $stmt->fetchAll();
+
+            foreach ($productos_db as $prod) {
+                $sesion_item = $_SESSION['carrito'][$prod['id']];
+                $precio = !empty($prod['precio_descuento'])
+                    ? $prod['precio_descuento']
+                    : $prod['precio'];
+
+                $items_carrito[] = [
+                    'producto_id'     => $prod['id'],
+                    'nombre'          => $prod['nombre'],
+                    'sku'             => $prod['sku'],
+                    'precio_unitario' => $precio,
+                    'cantidad'        => $sesion_item['cantidad'],
+                    'imagen_url'      => $prod['imagen_url'],
+                    'alt_text'        => $prod['alt_text'],
+                ];
+            }
+        }
+    }
 }
 
-// ============================================================
-// Obtener items del carrito desde la BD
-// ============================================================
-$stmt = $pdo->prepare("
-    SELECT ic.*, p.nombre, p.sku,
-           i.url as imagen_url, i.alt_text
-    FROM items_carrito ic
-    JOIN productos p ON p.id = ic.producto_id
-    LEFT JOIN (
-        SELECT producto_id, url, alt_text
-        FROM imagenes
-        WHERE es_principal = 1
-    ) i ON i.producto_id = ic.producto_id
-    WHERE ic.usuario_id = :uid
-    ORDER BY ic.fecha_agregado ASC
-");
-$stmt->execute([':uid' => $_SESSION['usuario_id']]);
-$items_carrito = $stmt->fetchAll();
-
-// ============================================================
-// Verificar que el carrito no esté vacío
-// ============================================================
 if (empty($items_carrito)) {
     $_SESSION['error'] = 'Tu carrito está vacío. Agrega productos antes de pagar.';
     redireccionar('carrito.php');
@@ -66,6 +94,14 @@ foreach ($items_carrito as $item) {
 }
 $totales = calcular_totales($items_totales);
 $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
+
+// ============================================================
+// AHORA incluimos el header (después de las verificaciones)
+// ============================================================
+require_once __DIR__ . '/includes/header.php';
+
+// Los datos del carrito y totales ya fueron obtenidos antes del header
+// No es necesario volver a consultarlos
 ?>
 
 <!-- ============================================================
@@ -82,6 +118,12 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 <?php if (!empty($_SESSION['error'])): ?>
     <div class="alert alert-danger"><?= escapar($_SESSION['error']) ?></div>
     <?php unset($_SESSION['error']); ?>
+<?php endif; ?>
+
+<?php if (!esta_logueado()): ?>
+    <div class="alert alert-info">
+        Puedes pagar como invitado. Completa la dirección de envío y confirma tu compra sin iniciar sesión.
+    </div>
 <?php endif; ?>
 
 <div class="row g-4">
@@ -173,14 +215,20 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                     <hr>
 
                     <!-- Botón de confirmación -->
-                    <button type="submit" class="btn btn-success btn-lg w-100">
-                        ✅ Confirmar Compra
+                    <button type="button" id="btn-crear-orden" class="btn btn-primary btn-lg w-100" onclick="crearOrden(event)">
+                        ✅ Continuar a PayPal
                     </button>
 
+                    <p class="text-muted small text-center mt-2 mb-0" id="loading-mensaje" style="display:none;">
+                        ⏳ Creando tu orden...
+                    </p>
                     <p class="text-muted small text-center mt-2 mb-0">
-                        Al confirmar, aceptas nuestros términos y condiciones.
+                        Al hacer clic, se creará tu orden y serás redirigido a PayPal para completar el pago.
                     </p>
                 </form>
+
+                <!-- Contenedor para el botón de PayPal (mostrado después de crear la orden) -->
+                <div id="paypal-button-container" style="display:none; margin-top: 20px;"></div>
             </div>
         </div>
     </div>
@@ -200,7 +248,7 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
                         <!-- Mini imagen -->
                         <div class="me-3">
                             <?php if (!empty($item['imagen_url'])): ?>
-                                <img src="<?= escapar($item['imagen_url']) ?>"
+                                <img src="<?= escapar(ruta_imagen_producto($item['imagen_url'])) ?>"
                                      alt="<?= escapar($item['alt_text'] ?? $item['nombre']) ?>"
                                      class="rounded"
                                      style="width: 50px; height: 50px; object-fit: cover;">
@@ -262,6 +310,170 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
         </div>
     </div>
 </div>
+
+<!-- ============================================================
+     PayPal SDK & JavaScript para manejar el pago
+     ============================================================ -->
+<script src="https://www.paypal.com/sdk/js?client-id=<?= htmlspecialchars(PAYPAL_CLIENT_ID) ?>&currency=USD&disable-funding=credit,card"></script>
+
+<script>
+// Estado global para la orden
+let ordenActual = {
+    id: null,
+    numero: null,
+    total: null,
+};
+let tokenCSRF = null;
+
+/**
+ * Valida el formulario y crea la orden en el servidor
+ */
+function crearOrden(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('form-checkout');
+    
+    // Validar que el formulario sea válido
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const calle = document.getElementById('calle').value.trim();
+    const ciudad = document.getElementById('ciudad').value.trim();
+    const region = document.getElementById('region').value.trim();
+    const codigo_postal = document.getElementById('codigo_postal').value.trim();
+    const notas = document.getElementById('notas').value.trim();
+    tokenCSRF = form.querySelector('input[name="_csrf_token"]').value;
+    
+    // Mostrar loading
+    document.getElementById('btn-crear-orden').disabled = true;
+    document.getElementById('loading-mensaje').style.display = 'block';
+    
+    // Crear FormData para enviar
+    const formData = new FormData();
+    formData.append('calle', calle);
+    formData.append('ciudad', ciudad);
+    formData.append('region', region);
+    formData.append('codigo_postal', codigo_postal);
+    formData.append('notas', notas);
+    formData.append('_csrf_token', tokenCSRF);
+    
+    // Enviar a api/checkout.php
+    fetch('api/checkout.php', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Guardar datos de la orden
+            ordenActual.id = data.data.orden_id;
+            ordenActual.numero = data.data.numero_orden;
+            ordenActual.total = data.data.total;
+            
+            // Ocultar formulario y mostrar PayPal
+            form.style.display = 'none';
+            document.getElementById('btn-crear-orden').style.display = 'none';
+            document.getElementById('loading-mensaje').style.display = 'none';
+            document.getElementById('paypal-button-container').style.display = 'block';
+            
+            // Renderizar botón de PayPal
+            renderizarPayPal();
+        } else {
+            alert('Error: ' + (data.message || 'No se pudo crear la orden'));
+            document.getElementById('btn-crear-orden').disabled = false;
+            document.getElementById('loading-mensaje').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión: ' + error.message);
+        document.getElementById('btn-crear-orden').disabled = false;
+        document.getElementById('loading-mensaje').style.display = 'none';
+    });
+}
+
+/**
+ * Renderiza el botón de PayPal
+ */
+function renderizarPayPal() {
+    if (typeof paypal === 'undefined') {
+        console.error('PayPal SDK no cargó correctamente');
+        return;
+    }
+    
+    paypal.Buttons({
+        // Crear orden en PayPal
+        createOrder: function(data, actions) {
+            return fetch('api/pago.php?action=crear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'action': 'crear',
+                    'orden_id': ordenActual.id,
+                    '_csrf_token': tokenCSRF
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    return data.data.paypal_order_id;
+                } else {
+                    throw new Error(data.message || 'Error al crear orden en PayPal');
+                }
+            });
+        },
+        
+        // Cuando el usuario aprueba el pago en PayPal
+        onApprove: function(data, actions) {
+            return fetch('api/pago.php?action=capturar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'action': 'capturar',
+                    'orden_id': ordenActual.id,
+                    'paypal_order_id': data.orderID,
+                    '_csrf_token': tokenCSRF
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Pago completado exitosamente
+                    window.location.href = 'exito.php?orden=' + encodeURIComponent(ordenActual.numero);
+                } else {
+                    alert('Error al confirmar pago: ' + (data.message || 'Error desconocido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión: ' + error.message);
+            });
+        },
+        
+        // Si el usuario cancela en PayPal
+        onCancel: function(data) {
+            alert('Pago cancelado. Tu orden se mantuvo en el sistema. Puedes intentar nuevamente.');
+            // Recargar para permitir otro intento
+            location.reload();
+        },
+        
+        // Manejo de errores
+        onError: function(err) {
+            console.error('PayPal error:', err);
+            alert('Error con PayPal: ' + err);
+        }
+    }).render('#paypal-button-container');
+}
+</script>
 
 <?php
 require_once __DIR__ . '/includes/footer.php';

@@ -7,19 +7,22 @@
 // cantidad, botón de carrito y productos relacionados.
 // ============================================================
 
+// ============================================================
+// Incluir configuración, BD y funciones
+// ============================================================
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
-
 $pdo = getDB();
 
 // ============================================================
-// Validar ID del producto
+// Validar ID del producto (ANTES del header)
 // ============================================================
 // [PEDAGÓGICO] Verificamos que el parámetro 'id' exista y sea
 // un número entero válido. Si no, redirigimos al inicio.
+// IMPORTANTE: Esta validación debe estar ANTES de incluir header.php
+// para evitar el error "headers already sent".
 $producto_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
 if ($producto_id <= 0) {
@@ -28,7 +31,7 @@ if ($producto_id <= 0) {
 }
 
 // ============================================================
-// Obtener datos del producto
+// Obtener datos del producto (ANTES del header)
 // ============================================================
 $stmt = $pdo->prepare("
     SELECT p.*, c.nombre as categoria_nombre, c.id as categoria_id,
@@ -41,11 +44,16 @@ $stmt = $pdo->prepare("
 $stmt->execute([':id' => $producto_id]);
 $producto = $stmt->fetch();
 
-// Si el producto no existe o no está activo
+// Si el producto no existe o no está activo, redirigir ANTES del header
 if (!$producto) {
     $_SESSION['error'] = 'Producto no encontrado.';
     redireccionar('index.php');
 }
+
+// ============================================================
+// AHORA incluimos el header (después de las validaciones)
+// ============================================================
+require_once __DIR__ . '/includes/header.php';
 
 // ============================================================
 // Obtener galería de imágenes del producto
@@ -103,7 +111,7 @@ if (empty($imagenes)) {
             <!-- Imagen grande principal -->
             <div class="mb-3">
                 <img id="imagen-principal"
-                     src="<?= escapar($imagenes[0]['url']) ?>"
+                     src="<?= escapar(ruta_imagen_producto($imagenes[0]['url'])) ?>"
                      alt="<?= escapar($imagenes[0]['alt_text'] ?? $producto['nombre']) ?>"
                      class="img-fluid rounded shadow-sm w-100"
                      style="max-height: 400px; object-fit: contain; background: #f8f9fa;">
@@ -114,7 +122,7 @@ if (empty($imagenes)) {
             <div class="row row-cols-4 g-2">
                 <?php foreach ($imagenes as $img): ?>
                 <div class="col">
-                    <img src="<?= escapar($img['url']) ?>"
+                    <img src="<?= escapar(ruta_imagen_producto($img['url'])) ?>"
                          alt="<?= escapar($img['alt_text'] ?? 'Imagen del producto') ?>"
                          class="img-fluid rounded border cursor-pointer miniatura-imagen"
                          style="height: 80px; width: 100%; object-fit: cover; cursor: pointer;"
@@ -297,7 +305,7 @@ $relacionados = $stmt->fetchAll();
                     <div class="card-img-top bg-light d-flex align-items-center justify-content-center"
                          style="height: 180px; overflow: hidden;">
                         <?php if (!empty($rel['imagen_url'])): ?>
-                            <img src="<?= escapar($rel['imagen_url']) ?>"
+                            <img src="<?= escapar(ruta_imagen_producto($rel['imagen_url'])) ?>"
                                  alt="<?= escapar($rel['alt_text'] ?? $rel['nombre']) ?>"
                                  class="img-fluid"
                                  style="max-height: 100%; object-fit: contain;">

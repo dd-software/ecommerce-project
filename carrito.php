@@ -16,11 +16,6 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-// [PEDAGÓGICO - OBJ-06] Si el usuario vuelve al carrito después
-// de haber iniciado un checkout, reiniciamos el countdown — el
-// próximo intento de pago arrancará con un timer fresco.
-unset($_SESSION['checkout_expira_at']);
-
 require_once __DIR__ . '/includes/header.php';
 
 $pdo = getDB();
@@ -122,6 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
                         $mensaje = '✅ Producto agregado al carrito.';
+                        // [OBJ-06] Carrito modificado: reseteamos el
+                        // countdown para que el próximo checkout arranque
+                        // con 10:00 limpios.
+                        unset($_SESSION['checkout_expira_at']);
                     }
                 }
                 break;
@@ -162,6 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                     $mensaje = '✅ Cantidad actualizada.';
+                    // [OBJ-06] Cantidad cambió: reset del countdown.
+                    unset($_SESSION['checkout_expira_at']);
                 }
                 break;
 
@@ -182,6 +183,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unset($_SESSION['carrito'][$producto_id]);
                 }
                 $mensaje = '🗑️ Producto eliminado del carrito.';
+                // [OBJ-06] Item eliminado: reset del countdown.
+                unset($_SESSION['checkout_expira_at']);
                 break;
 
             // ============================================================
@@ -198,6 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['carrito'] = [];
                 }
                 $mensaje = '🗑️ Carrito vaciado.';
+                // [OBJ-06] Carrito vaciado: reset del countdown.
+                unset($_SESSION['checkout_expira_at']);
                 break;
         }
     }

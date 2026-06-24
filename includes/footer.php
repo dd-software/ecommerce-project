@@ -19,6 +19,20 @@
     </footer>
 
     <!-- ============================================================
+         Contenedor global de toasts (notificaciones)
+         ============================================================
+         [PEDAGÓGICO] Bootstrap 5.3 trae el componente <toast> nativo.
+         Lo dejamos vacío y carrito.js le va inyectando toasts según
+         haga falta. position-fixed lo deja siempre visible aunque
+         hagas scroll; aria-live="polite" hace que lectores de
+         pantalla anuncien los toasts. -->
+    <div id="toastContainer"
+         class="toast-container position-fixed bottom-0 start-0 p-3"
+         style="z-index: 1080;"
+         aria-live="polite"
+         aria-atomic="true"></div>
+
+    <!-- ============================================================
          Botón flotante: cambiar entre tema claro y oscuro
          ============================================================
          [PEDAGÓGICO] aria-label hace que lectores de pantalla

@@ -104,44 +104,64 @@ $(document).ready(function () {
     // ============================================================
 
     /**
-     * Muestra un mensaje de éxito temporal en la esquina superior derecha.
-     * @param {string} mensaje - Texto del mensaje a mostrar
+     * Renderiza un toast de Bootstrap 5.3 en #toastContainer.
+     *
+     * [PEDAGÓGICO] El componente <toast> nativo de Bootstrap 5.3 es
+     * más accesible y consistente que un <alert> con position-fixed.
+     * data-bs-autohide y data-bs-delay manejan la desaparición sin
+     * setTimeout manual, y la instancia bootstrap.Toast se encarga
+     * de las clases fade/show y de disparar el evento hidden.
+     *
+     * @param {string} titulo - Texto del encabezado
+     * @param {string} cuerpoHtml - HTML del cuerpo (puede llevar un <a>)
+     * @param {string} variante - 'success' | 'danger' | 'warning' | 'info'
      */
-    function mostrarMensajeExito(mensaje) {
-        var toast = $(
-            '<div class="alert alert-success alert-dismissible fade show position-fixed" ' +
-            'style="top: 20px; right: 20px; z-index: 9999; max-width: 400px;" role="alert">' +
-            mensaje +
-            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+    function mostrarToast(titulo, cuerpoHtml, variante) {
+        var $cont = $('#toastContainer');
+        if (!$cont.length) {
+            // Fallback si el contenedor no existe (no debería pasar).
+            $cont = $('<div id="toastContainer" class="toast-container ' +
+                      'position-fixed bottom-0 start-0 p-3" ' +
+                      'style="z-index: 1080;"></div>').appendTo('body');
+        }
+
+        var clase = 'text-bg-' + (variante || 'primary');
+        var $toast = $(
+            '<div class="toast align-items-center ' + clase + ' border-0" ' +
+            'role="alert" aria-live="assertive" aria-atomic="true" ' +
+            'data-bs-delay="4000">' +
+              '<div class="toast-header ' + clase + ' border-0">' +
+                '<strong class="me-auto">' + titulo + '</strong>' +
+                '<button type="button" class="btn-close btn-close-white" ' +
+                  'data-bs-dismiss="toast" aria-label="Cerrar"></button>' +
+              '</div>' +
+              '<div class="toast-body">' + cuerpoHtml + '</div>' +
             '</div>'
         );
-        $('body').append(toast);
 
-        // [PEDAGÓGICO] Auto-cerrar el mensaje después de 3 segundos
-        // usando remove() de jQuery para eliminar el elemento del DOM.
-        setTimeout(function () {
-            toast.remove();
-        }, 3000);
+        $cont.append($toast);
+
+        // Limpiar el nodo del DOM cuando termine la animación de salida.
+        $toast.on('hidden.bs.toast', function () { $toast.remove(); });
+
+        new bootstrap.Toast($toast.get(0)).show();
     }
 
     /**
-     * Muestra un mensaje de error temporal.
-     * @param {string} mensaje - Texto del error
+     * Toast de éxito al agregar al carrito. Incluye botón "Ver carrito".
+     */
+    function mostrarMensajeExito(mensaje) {
+        var cuerpo = mensaje +
+            ' <a href="carrito.php" class="btn btn-sm btn-light fw-bold ms-2">' +
+            'Ver carrito</a>';
+        mostrarToast('🛒 Carrito', cuerpo, 'success');
+    }
+
+    /**
+     * Toast de error.
      */
     function mostrarMensajeError(mensaje) {
-        var toast = $(
-            '<div class="alert alert-danger alert-dismissible fade show position-fixed" ' +
-            'style="top: 20px; right: 20px; z-index: 9999; max-width: 400px;" role="alert">' +
-            mensaje +
-            '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
-            '</div>'
-        );
-        $('body').append(toast);
-        // [PEDAGÓGICO] Auto-cerrar el mensaje después de 3 segundos
-        // usando remove() de jQuery para eliminar el elemento del DOM.
-        setTimeout(function () {
-            toast.remove();
-        }, 3000);
+        mostrarToast('⚠️ Error', mensaje, 'danger');
     }
 
     // ============================================================
@@ -194,8 +214,9 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (respuesta) {
                 if (respuesta.success) {
-                    // Actualizar badge sin recargar
+                    // Actualizar badge sin recargar y notificar al usuario.
                     actualizarBadgeCarrito(true);
+                    mostrarMensajeExito('✅ Producto agregado al carrito.');
                 } else {
                     mostrarMensajeError(respuesta.message || 'Error al agregar producto.');
                 }
@@ -249,6 +270,7 @@ $('.agregar-carrito').on('click', function (e) {
         success: function(respuesta) {
             if (respuesta.success) {
                 actualizarBadgeCarrito(true);
+                mostrarMensajeExito('✅ Producto agregado al carrito.');
             } else {
                 mostrarMensajeError(
                     respuesta.message || 'No se pudo agregar'

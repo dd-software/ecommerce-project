@@ -13,14 +13,14 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
+// 🚨 CORRECCIÓN CRÍTICA: Se quitó el header.php de aquí para evitar el "Headers already sent"
 
 $pdo    = getDB();
 $error  = '';
 $email  = '';
 
 // ============================================================
-// Procesar formulario POST
+// Procesar formulario POST (Lógica pura de datos - Sin HTML previo)
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validar token CSRF
@@ -31,9 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email    = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        // ============================================================
         // Rate Limiting: controlar intentos fallidos
-        // ============================================================
         if (!isset($_SESSION['login_intentos'])) {
             $_SESSION['login_intentos'] = 0;
             $_SESSION['login_bloqueo_hasta'] = null;
@@ -93,11 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unset($_SESSION['login_bloqueo_hasta']);
 
                     // ============================================================
-                    // [FUSIÓN/MIGRACIÓN] Pasar items de carrito de sesión a la BD
+                    // [MIGRACIÓN] Pasar items de carrito de sesión a la BD
                     // ============================================================
                     if (!empty($_SESSION['carrito'])) {
                         foreach ($_SESSION['carrito'] as $prod_id => $item) {
-                            // Verificar si ya existe el producto en el carrito de la BD del usuario
                             $stmt = $pdo->prepare("
                                 SELECT id, cantidad FROM items_carrito
                                 WHERE usuario_id = :uid AND producto_id = :pid
@@ -109,7 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $existente = $stmt->fetch();
 
                             if ($existente) {
-                                // Si ya existe, se incrementa la cantidad acumulada
                                 $stmt = $pdo->prepare("
                                     UPDATE items_carrito
                                     SET cantidad = cantidad + :cant
@@ -120,7 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     ':id'   => $existente['id'],
                                 ]);
                             } else {
-                                // Si es un producto nuevo, se añade el registro limpio
                                 $stmt = $pdo->prepare("
                                     INSERT INTO items_carrito (sesion_id, usuario_id, producto_id, cantidad, precio_unitario)
                                     VALUES (:sesion, :uid, :pid, :cant, :precio)
@@ -134,7 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 ]);
                             }
                         }
-                        // Limpiar el carrito de sesión (invitado) para no duplicar datos
                         unset($_SESSION['carrito']);
                     }
 
@@ -144,7 +138,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $destino = 'index.php';
                     }
 
+                    // Ahora sí funcionará sin errores, porque no se ha impreso ni una pizca de HTML
                     redireccionar($destino);
+                    exit;
                 }
             }
         }
@@ -165,6 +161,12 @@ $redirect = $_GET['redirect'] ?? ($_GET['redirigir'] ?? 'index.php');
 if (strpos($redirect, 'http') === 0) {
     $redirect = 'index.php';
 }
+
+// ============================================================
+// INCORPORACIÓN DEL RENDERIZADO VISUAL
+// ============================================================
+// 🚨 CORRECCIÓN CRÍTICA: Se llama al header justo aquí, cuando ya terminamos de procesar posibles redirecciones
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="row justify-content-center">

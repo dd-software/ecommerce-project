@@ -4,6 +4,9 @@
 -- Motor: MySQL 5.7+ / MariaDB 10+
 -- =============================================================================
 
+-- ============================================================
+-- 1. CREAR BASE DE DATOS (si no existe)
+-- ============================================================
 CREATE DATABASE IF NOT EXISTS ecommerce_uct
     DEFAULT CHARACTER SET utf8mb4
     DEFAULT COLLATE utf8mb4_unicode_ci;
@@ -13,26 +16,28 @@ USE ecommerce_uct;
 -- Desactivar verificaciones para creación ordenada
 SET FOREIGN_KEY_CHECKS = 0;
 
--- =============================================================================
--- TABLA: usuarios (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 2. TABLA: usuarios
+-- ============================================================
+DROP TABLE IF EXISTS usuarios;
 CREATE TABLE usuarios (
     id              INT AUTO_INCREMENT PRIMARY KEY,
     nombre          VARCHAR(100)    NOT NULL,
     apellido        VARCHAR(100)    NOT NULL,
     email           VARCHAR(255)    NOT NULL UNIQUE,
-    password        VARCHAR(255)    NOT NULL COMMENT 'Hash bcrypt - nunca almacenar contraseñas en texto plano',
+    password        VARCHAR(255)    NOT NULL COMMENT 'Hash bcrypt',
     rol             ENUM('cliente', 'admin') NOT NULL DEFAULT 'cliente',
-    activo          TINYINT(1)      NOT NULL DEFAULT 1 COMMENT '1=activo, 0=desactivado (soft-delete)',
+    activo          TINYINT(1)      NOT NULL DEFAULT 1,
     fecha_registro  DATETIME        NOT NULL DEFAULT NOW(),
     ultimo_acceso   DATETIME        DEFAULT NULL,
     INDEX idx_usuarios_email (email),
     INDEX idx_usuarios_rol (rol)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: categorias (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 3. TABLA: categorias
+-- ============================================================
+DROP TABLE IF EXISTS categorias;
 CREATE TABLE categorias (
     id              INT AUTO_INCREMENT PRIMARY KEY,
     nombre          VARCHAR(100)    NOT NULL UNIQUE,
@@ -43,9 +48,10 @@ CREATE TABLE categorias (
     INDEX idx_categorias_orden (orden)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: productos (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 4. TABLA: productos
+-- ============================================================
+DROP TABLE IF EXISTS productos;
 CREATE TABLE productos (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     sku                 VARCHAR(50)     NOT NULL UNIQUE,
@@ -54,6 +60,7 @@ CREATE TABLE productos (
     precio              DECIMAL(10,2)   NOT NULL,
     precio_descuento    DECIMAL(10,2)   DEFAULT NULL,
     categoria_id        INT             NOT NULL,
+    stock               INT             NOT NULL DEFAULT 0 COMMENT 'Stock actual del producto',
     activo              TINYINT(1)      NOT NULL DEFAULT 1,
     destacado           TINYINT(1)      NOT NULL DEFAULT 0,
     slug                VARCHAR(255)    NOT NULL UNIQUE,
@@ -64,9 +71,10 @@ CREATE TABLE productos (
     INDEX idx_productos_destacado (destacado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: imagenes (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 5. TABLA: imagenes
+-- ============================================================
+DROP TABLE IF EXISTS imagenes;
 CREATE TABLE imagenes (
     id              INT AUTO_INCREMENT PRIMARY KEY,
     producto_id     INT             NOT NULL,
@@ -78,9 +86,10 @@ CREATE TABLE imagenes (
     INDEX idx_imagenes_producto (producto_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: inventario (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 6. TABLA: inventario (para control de stock detallado)
+-- ============================================================
+DROP TABLE IF EXISTS inventario;
 CREATE TABLE inventario (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     producto_id         INT         NOT NULL UNIQUE,
@@ -93,9 +102,10 @@ CREATE TABLE inventario (
     CHECK (cantidad_reservada >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: reservas_inventario (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 7. TABLA: reservas_inventario
+-- ============================================================
+DROP TABLE IF EXISTS reservas_inventario;
 CREATE TABLE reservas_inventario (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     orden_id            INT             NOT NULL,
@@ -110,9 +120,10 @@ CREATE TABLE reservas_inventario (
     INDEX idx_reservas_orden (orden_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: movimientos_inventario (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 8. TABLA: movimientos_inventario
+-- ============================================================
+DROP TABLE IF EXISTS movimientos_inventario;
 CREATE TABLE movimientos_inventario (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     producto_id         INT             NOT NULL,
@@ -126,9 +137,10 @@ CREATE TABLE movimientos_inventario (
     INDEX idx_movimientos_fecha (fecha)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: items_carrito (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 9. TABLA: items_carrito
+-- ============================================================
+DROP TABLE IF EXISTS items_carrito;
 CREATE TABLE items_carrito (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     sesion_id           VARCHAR(255)    NOT NULL,
@@ -144,9 +156,10 @@ CREATE TABLE items_carrito (
     CHECK (cantidad > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: pedidos (MODIFICADA - Añadir campos para PayPal y dirección)
--- =============================================================================
+-- ============================================================
+-- 10. TABLA: pedidos (CON PAYPAL Y DIRECCIÓN)
+-- ============================================================
+DROP TABLE IF EXISTS pedidos;
 CREATE TABLE pedidos (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     numero              VARCHAR(20)     NOT NULL UNIQUE,
@@ -166,26 +179,26 @@ CREATE TABLE pedidos (
     envio               DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
     total               DECIMAL(10,2)   NOT NULL,
     
-    -- ========== NUEVOS CAMPOS PARA DIRECCIÓN ==========
-    calle               VARCHAR(255)    NOT NULL COMMENT 'Calle y número',
-    ciudad              VARCHAR(100)    NOT NULL COMMENT 'Ciudad',
-    region              VARCHAR(100)    NOT NULL COMMENT 'Región',
-    codigo_postal       VARCHAR(20)     DEFAULT NULL COMMENT 'Código postal (opcional)',
-    notas               TEXT            DEFAULT NULL COMMENT 'Notas del pedido',
+    -- Dirección de envío (desnormalizada)
+    calle               VARCHAR(255)    NOT NULL,
+    ciudad              VARCHAR(100)    NOT NULL,
+    region              VARCHAR(100)    NOT NULL,
+    codigo_postal       VARCHAR(20)     DEFAULT NULL,
+    notas               TEXT            DEFAULT NULL,
+    direccion_envio     TEXT            DEFAULT NULL COMMENT 'Dirección completa (legado)',
     
-    -- ========== NUEVOS CAMPOS PARA MÉTODO DE PAGO ==========
+    -- Método de pago
     metodo_pago         ENUM('paypal', 'transferencia', 'tarjeta', 'webpay', 'efectivo') NOT NULL DEFAULT 'transferencia',
     
-    -- ========== NUEVOS CAMPOS PARA PAYPAL ==========
-    paypal_order_id     VARCHAR(100)    DEFAULT NULL COMMENT 'ID de orden de PayPal',
-    paypal_payer_id     VARCHAR(100)    DEFAULT NULL COMMENT 'ID del pagador en PayPal',
-    paypal_payment_id   VARCHAR(100)    DEFAULT NULL COMMENT 'ID del pago en PayPal',
+    -- PayPal
+    paypal_order_id     VARCHAR(100)    DEFAULT NULL,
+    paypal_payer_id     VARCHAR(100)    DEFAULT NULL,
+    paypal_payment_id   VARCHAR(100)    DEFAULT NULL,
     
-    -- ========== CAMPOS EXISTENTES ==========
-    direccion_envio     TEXT            DEFAULT NULL COMMENT 'Dirección completa (legado - mantener para compatibilidad)',
+    -- Fechas
     fecha_creacion      DATETIME        NOT NULL DEFAULT NOW(),
-    fecha_actualizacion DATETIME        DEFAULT NULL ON UPDATE NOW(),
-    fecha_pago          DATETIME        DEFAULT NULL COMMENT 'Momento del pago (PayPal o confirmación)',
+    fecha_actualizacion DATETIME        DEFAULT NULL,
+    fecha_pago          DATETIME        DEFAULT NULL,
     
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_pedidos_usuario (usuario_id),
@@ -196,11 +209,11 @@ CREATE TABLE pedidos (
     INDEX idx_pedidos_metodo_pago (metodo_pago)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: detalles_pedido (SIN CAMBIOS - PERO AJUSTAR NOMBRE)
--- Nota: Cambiar nombre de tabla de detalles_pedido a pedido_items para consistencia
--- =============================================================================
-CREATE TABLE pedido_items (
+-- ============================================================
+-- 11. TABLA: detalles_pedido (ÍTEMS DEL PEDIDO)
+-- ============================================================
+DROP TABLE IF EXISTS detalles_pedido;
+CREATE TABLE detalles_pedido (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     pedido_id           INT             NOT NULL,
     producto_id         INT             NOT NULL,
@@ -210,13 +223,14 @@ CREATE TABLE pedido_items (
     subtotal            DECIMAL(10,2)   NOT NULL,
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    INDEX idx_pedido_items_pedido (pedido_id),
+    INDEX idx_detalles_pedido (pedido_id),
     CHECK (cantidad > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: pagos (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 12. TABLA: pagos
+-- ============================================================
+DROP TABLE IF EXISTS pagos;
 CREATE TABLE pagos (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     pedido_id           INT             NOT NULL UNIQUE,
@@ -231,9 +245,10 @@ CREATE TABLE pagos (
     INDEX idx_pagos_referencia (referencia_pasarela)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: historial_pagos (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 13. TABLA: historial_pagos
+-- ============================================================
+DROP TABLE IF EXISTS historial_pagos;
 CREATE TABLE historial_pagos (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     pago_id             INT             NOT NULL,
@@ -246,9 +261,10 @@ CREATE TABLE historial_pagos (
     INDEX idx_historial_fecha (fecha)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
--- TABLA: configuracion (SIN CAMBIOS)
--- =============================================================================
+-- ============================================================
+-- 14. TABLA: configuracion
+-- ============================================================
+DROP TABLE IF EXISTS configuracion;
 CREATE TABLE configuracion (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
     clave               VARCHAR(100)    NOT NULL UNIQUE,
@@ -256,20 +272,19 @@ CREATE TABLE configuracion (
     fecha_actualizacion DATETIME        NOT NULL DEFAULT NOW()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =============================================================================
+-- ============================================================
 -- REACTIVAR VERIFICACIONES
--- =============================================================================
+-- ============================================================
 SET FOREIGN_KEY_CHECKS = 1;
 
--- =============================================================================
--- DATOS SEMILLA (SEED DATA) PARA DEMO
--- =============================================================================
+-- ============================================================
+-- 15. DATOS SEMILLA (SEED DATA)
+-- ============================================================
 
 -- ---------------------------------------------------------------------------
--- 1. Administrador
+-- 15.1 Usuario Administrador
 -- Email: admin@ecommerce.local
 -- Password: Admin123!
--- Hash bcrypt: $2y$12$... (reemplazar con hash real)
 -- ---------------------------------------------------------------------------
 INSERT INTO usuarios (nombre, apellido, email, password, rol, activo, fecha_registro)
 VALUES (
@@ -283,7 +298,7 @@ VALUES (
 );
 
 -- ---------------------------------------------------------------------------
--- 2. Usuario de prueba
+-- 15.2 Usuario de Prueba
 -- Email: usuario@ecommerce.local
 -- Password: Usuario123!
 -- ---------------------------------------------------------------------------
@@ -299,7 +314,7 @@ VALUES (
 );
 
 -- ---------------------------------------------------------------------------
--- 3. Categorías
+-- 15.3 Categorías
 -- ---------------------------------------------------------------------------
 INSERT INTO categorias (nombre, descripcion, activa, orden) VALUES
 ('Electrónica',   'Productos electrónicos, gadgets y accesorios tecnológicos', 1, 1),
@@ -308,42 +323,58 @@ INSERT INTO categorias (nombre, descripcion, activa, orden) VALUES
 ('Deportes',      'Equipamiento deportivo y artículos para actividad física',  1, 4);
 
 -- ---------------------------------------------------------------------------
--- 4. Productos de ejemplo (precios en CLP)
+-- 15.4 Productos de Ejemplo (precios en CLP)
 -- ---------------------------------------------------------------------------
-INSERT INTO productos (sku, nombre, descripcion, precio, precio_descuento, categoria_id, activo, destacado, slug)
+INSERT INTO productos (sku, nombre, descripcion, precio, precio_descuento, categoria_id, stock, activo, destacado, slug)
 VALUES
 ('TEC-001', 'Audífonos Bluetooth Pro',
  'Audífonos inalámbricos con cancelación de ruido activa y 30 horas de batería. Cómodos y ligeros.',
  29990, 24990,
- (SELECT id FROM categorias WHERE nombre = 'Electrónica'), 1, 1, 'audifonos-bluetooth-pro'),
+ (SELECT id FROM categorias WHERE nombre = 'Electrónica'), 50, 1, 1, 'audifonos-bluetooth-pro'),
 
 ('TEC-002', 'Cargador USB-C 65W GaN',
  'Cargador compacto con tecnología GaN, 3 puertos (2 USB-C + 1 USB-A). Carga rápida para laptops y smartphones.',
  15990, NULL,
- (SELECT id FROM categorias WHERE nombre = 'Electrónica'), 1, 0, 'cargador-usb-c-65w-gan'),
+ (SELECT id FROM categorias WHERE nombre = 'Electrónica'), 100, 1, 0, 'cargador-usb-c-65w-gan'),
 
 ('HOG-001', 'Lámpara LED Inteligente',
  'Lámpara de mesa con WiFi integrado, compatible con Alexa y Google Home. 16 millones de colores y temperatura ajustable.',
  19990, 17990,
- (SELECT id FROM categorias WHERE nombre = 'Hogar'), 1, 1, 'lampara-led-inteligente'),
+ (SELECT id FROM categorias WHERE nombre = 'Hogar'), 30, 1, 1, 'lampara-led-inteligente'),
 
 ('HOG-002', 'Set de Sartenes Antiadherentes',
  'Juego de 3 sartenes (20cm, 24cm, 28cm) con recubrimiento cerámico antiadherente. Aptas para todo tipo de cocinas.',
  34990, NULL,
- (SELECT id FROM categorias WHERE nombre = 'Hogar'), 1, 0, 'set-sartenes-antiadherentes'),
+ (SELECT id FROM categorias WHERE nombre = 'Hogar'), 20, 1, 0, 'set-sartenes-antiadherentes'),
 
 ('DEP-001', 'Botella Térmica Acero 750ml',
  'Botella de acero inoxidable al vacío. Mantiene bebidas frías 24h o calientes 12h. Diseño deportivo.',
  12990, 9990,
- (SELECT id FROM categorias WHERE nombre = 'Deportes'), 1, 1, 'botella-termica-acero-750ml'),
+ (SELECT id FROM categorias WHERE nombre = 'Deportes'), 80, 1, 1, 'botella-termica-acero-750ml'),
 
 ('ROP-001', 'Polera Algodón Orgánico',
  'Polera de manga corta 100% algodón orgánico certificado. Corte regular, disponible en 5 colores.',
  14990, NULL,
- (SELECT id FROM categorias WHERE nombre = 'Ropa'), 1, 0, 'polera-algodon-organico');
+ (SELECT id FROM categorias WHERE nombre = 'Ropa'), 60, 1, 0, 'polera-algodon-organico');
 
 -- ---------------------------------------------------------------------------
--- 5. Inventario inicial para los productos
+-- 15.5 Imágenes de Productos (Ejemplo)
+-- ---------------------------------------------------------------------------
+INSERT INTO imagenes (producto_id, url, alt_text, es_principal, orden)
+SELECT id, '/assets/img/productos/audifonos.jpg', 'Audífonos Bluetooth Pro', 1, 1 FROM productos WHERE sku = 'TEC-001'
+UNION ALL
+SELECT id, '/assets/img/productos/cargador.jpg', 'Cargador USB-C 65W', 1, 1 FROM productos WHERE sku = 'TEC-002'
+UNION ALL
+SELECT id, '/assets/img/productos/lampara.jpg', 'Lámpara LED Inteligente', 1, 1 FROM productos WHERE sku = 'HOG-001'
+UNION ALL
+SELECT id, '/assets/img/productos/sartenes.jpg', 'Set de Sartenes', 1, 1 FROM productos WHERE sku = 'HOG-002'
+UNION ALL
+SELECT id, '/assets/img/productos/botella.jpg', 'Botella Térmica', 1, 1 FROM productos WHERE sku = 'DEP-001'
+UNION ALL
+SELECT id, '/assets/img/productos/polera.jpg', 'Polera Algodón', 1, 1 FROM productos WHERE sku = 'ROP-001';
+
+-- ---------------------------------------------------------------------------
+-- 15.6 Inventario Inicial
 -- ---------------------------------------------------------------------------
 INSERT INTO inventario (producto_id, cantidad, cantidad_reservada, umbral_alerta)
 SELECT id, 50, 0, 5 FROM productos WHERE sku = 'TEC-001'
@@ -359,7 +390,7 @@ UNION ALL
 SELECT id, 60, 0, 10 FROM productos WHERE sku = 'ROP-001';
 
 -- ---------------------------------------------------------------------------
--- 6. Configuración del sistema (actualizada con PayPal)
+-- 15.7 Configuración del Sistema
 -- ---------------------------------------------------------------------------
 INSERT INTO configuracion (clave, valor) VALUES
 ('moneda',                  'CLP'),
@@ -370,17 +401,35 @@ INSERT INTO configuracion (clave, valor) VALUES
 ('reserva_expiracion_minutos', '10'),
 ('sitio_nombre',            'Mi Ecommerce UCT'),
 ('sitio_descripcion',       'Tienda en línea pedagógica - Proyecto de aprendizaje'),
-('pago_paypal_cliente_id',  'sb'),  -- Sandbox por defecto
-('pago_paypal_secreto',     ''),    -- Completar con Secret real
-('pago_paypal_modo',        'sandbox'),  -- sandbox | live
-('pago_paypal_currency',    'CLP');
 
--- ---------------------------------------------------------------------------
--- 7. Datos de transferencia bancaria (ejemplo)
--- ---------------------------------------------------------------------------
-INSERT INTO configuracion (clave, valor) VALUES
+-- PayPal
+('pago_paypal_cliente_id',  'sb'),
+('pago_paypal_secreto',     ''),
+('pago_paypal_modo',        'sandbox'),
+('pago_paypal_currency',    'CLP'),
+
+-- Transferencia Bancaria
 ('transferencia_banco',     'Banco de Chile'),
 ('transferencia_cuenta',    '123456789'),
 ('transferencia_titular',   'Mi Ecommerce UCT'),
 ('transferencia_rut',       '76.123.456-7'),
 ('transferencia_email',     'pagos@ecommerce.local');
+
+-- ============================================================
+-- 16. VERIFICACIÓN FINAL
+-- ============================================================
+-- Mostrar todas las tablas creadas
+SHOW TABLES;
+
+-- Mostrar usuarios
+SELECT id, nombre, email, rol FROM usuarios;
+
+-- Mostrar productos
+SELECT id, sku, nombre, precio, stock FROM productos;
+
+-- Mostrar configuración
+SELECT clave, valor FROM configuracion;
+
+-- ============================================================
+-- FIN DEL SCRIPT
+-- ============================================================

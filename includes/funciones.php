@@ -481,33 +481,6 @@ function validar_password($password): ?string
     return null;
 }
 
-// ============================================================
-// Funciones de Depuración (Debug)
-// ============================================================
-
-/**
- * Función de depuración para imprimir variables de forma legible.
- * Solo se ejecuta en modo desarrollo.
- *
- * @param mixed $variable Variable a imprimir
- * @param string $titulo Título opcional
- */
-function debug($variable, $titulo = 'Debug'): void
-{
-    // Solo mostrar si estamos en entorno de desarrollo
-    if (defined('ENV') && ENV === 'development') {
-        echo '<div style="background:#f4f4f4;border:1px solid #ddd;padding:15px;margin:10px 0;border-radius:5px;">';
-        echo '<h4>' . escapar($titulo) . '</h4>';
-        echo '<pre style="background:#fff;padding:10px;border:1px solid #eee;overflow:auto;">';
-        if (is_array($variable) || is_object($variable)) {
-            print_r($variable);
-        } else {
-            var_dump($variable);
-        }
-        echo '</pre>';
-        echo '</div>';
-    }
-}
 
 // ============================================================
 // Funciones de Sanitización

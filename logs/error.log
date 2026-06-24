@@ -1,0 +1,2 @@
+[24-Jun-2026 00:07:02 America/Santiago] PHP Fatal error:  Cannot redeclare debug() (previously declared in C:\xampp\htdocs\ecommerce-project\includes\config.php:180) in C:\xampp\htdocs\ecommerce-project\includes\funciones.php on line 495
+[24-Jun-2026 00:07:25 America/Santiago] PHP Fatal error:  Cannot redeclare debug() (previously declared in C:\xampp\htdocs\ecommerce-project\includes\config.php:180) in C:\xampp\htdocs\ecommerce-project\includes\funciones.php on line 495

@@ -79,6 +79,11 @@ try {
                 throw new Exception('ID de producto inválido.');
             }
 
+            // [PEDAGÓGICO - OBJ-06] Modificar el carrito invalida un
+            // posible checkout en curso: reseteamos el countdown para
+            // que el próximo "Pagar" arranque desde 10:00 limpio.
+            unset($_SESSION['checkout_expira_at']);
+
             // [PEDAGÓGICO] Verificamos que el producto exista, esté activo y tenga stock
             $stmt = $pdo->prepare("
                 SELECT p.id, p.precio, p.precio_descuento,

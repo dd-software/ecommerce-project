@@ -16,6 +16,11 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
+// [PEDAGÓGICO - OBJ-06] Si el usuario vuelve al carrito después
+// de haber iniciado un checkout, reiniciamos el countdown — el
+// próximo intento de pago arrancará con un timer fresco.
+unset($_SESSION['checkout_expira_at']);
+
 require_once __DIR__ . '/includes/header.php';
 
 $pdo = getDB();

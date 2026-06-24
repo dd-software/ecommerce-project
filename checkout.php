@@ -67,22 +67,15 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 // ============================================================
 // Countdown persistente por sesión (OBJ-06)
 // ============================================================
-// [PEDAGÓGICO] Guardamos el timestamp de expiración en $_SESSION
-// para que el contador sobreviva a reloads, cierres de pestaña
-// e incluso a abrir el checkout en otra ventana. Como las
-// sesiones PHP son por-usuario, cada cliente tiene su propio
-// contador y no interfiere con el de otros.
-//
-// Sólo lo inicializamos si NO existe: una vez arrancado, el
-// contador sigue corriendo aunque el usuario cierre la pestaña.
-// Si llega a 0, queda marcado como expirado hasta que el usuario
-// complete el pago (api/checkout.php limpia la clave) o cierre
-// sesión.
-$ahora = time();
-if (empty($_SESSION['checkout_expira_at'])) {
-    $_SESSION['checkout_expira_at'] = $ahora + (RESERVA_MINUTOS * 60);
-}
-$checkout_expira_at_ms = $_SESSION['checkout_expira_at'] * 1000;
+// [PEDAGÓGICO] El timestamp de expiración vive en $_SESSION pero
+// NO se inicializa al cargar la página. Sólo arranca cuando el
+// usuario hace clic en PayPal (vía AJAX a api/timer.php). Así:
+//   - Si llega y nunca paga: no hay timer (no fuerza nada)
+//   - Si vuelve al carrito o agrega items: se borra (reset)
+//   - Si recarga checkout.php con timer ya iniciado: continúa
+$checkout_expira_at_ms = !empty($_SESSION['checkout_expira_at'])
+    ? $_SESSION['checkout_expira_at'] * 1000
+    : 0;
 ?>
 
 <script src="https://www.paypal.com/sdk/js?client-id=AS0Vpwu2uML769uxxby0p2XLqbcWhRYHcAqiyVcM48VztuLCjKdBRetSKdSPLAzmlLxgEzesfwrU8PkO&currency=USD"></script>
@@ -101,13 +94,13 @@ $checkout_expira_at_ms = $_SESSION['checkout_expira_at'] * 1000;
 <!-- ============================================================
      Countdown de la sesión de checkout (OBJ-06)
      ============================================================
-     [PEDAGÓGICO] data-expira-at-ms lleva el timestamp UNIX EN MS
-     calculado en PHP desde $_SESSION. Así el contador es el mismo
-     entre reloads, pestañas y reaperturas del navegador mientras
-     viva la sesión PHP. position: sticky lo mantiene siempre
-     visible aunque el usuario haga scroll. -->
+     [PEDAGÓGICO] Inicia OCULTO. Se activa cuando el usuario hace
+     clic en PayPal (api/timer.php?action=iniciar guarda el timestamp
+     en $_SESSION). Si la página se recarga con timer ya iniciado,
+     el banner se vuelve a mostrar usando data-expira-at-ms.
+     position: sticky lo mantiene visible al hacer scroll. -->
 <div id="checkoutCountdown"
-     class="alert alert-warning d-flex align-items-center mb-4 shadow"
+     class="alert alert-warning align-items-center mb-4 shadow <?= $checkout_expira_at_ms > 0 ? 'd-flex' : 'd-none' ?>"
      role="status"
      data-expira-at-ms="<?= $checkout_expira_at_ms ?>"
      style="position: sticky; top: 1rem; z-index: 1000;">
@@ -276,6 +269,7 @@ $checkout_expira_at_ms = $_SESSION['checkout_expira_at'] * 1000;
 <script>
     paypal.Buttons({
         // 1. Validamos que la dirección no esté vacía antes de abrir la interfaz de PayPal
+        //    Y arrancamos el countdown de la sesión de checkout (OBJ-06).
         onClick: function(data, actions) {
             const calle = document.getElementById('calle').value.trim();
             const ciudad = document.getElementById('ciudad').value.trim();
@@ -283,9 +277,28 @@ $checkout_expira_at_ms = $_SESSION['checkout_expira_at'] * 1000;
 
             if (!calle || !ciudad || !region) {
                 alert('⚠️ Por favor, completa los campos obligatorios de la dirección (Calle, Ciudad y Región) antes de pagar.');
-                return actions.reject(); 
+                return actions.reject();
             }
-            return actions.resolve(); 
+
+            // [PEDAGÓGICO - OBJ-06] El timer arranca AQUÍ (no al cargar
+            // la página). AJAX a api/timer.php?action=iniciar guarda
+            // el timestamp en $_SESSION y nos lo devuelve para activar
+            // el banner. Si la petición falla, igual dejamos pasar a
+            // PayPal (no bloqueamos el pago por un timer cosmético).
+            const csrf = $('meta[name="csrf-token"]').attr('content');
+            $.ajax({
+                url: 'api/timer.php',
+                method: 'POST',
+                async: false, // queremos el ms ANTES de seguir
+                data: { action: 'iniciar', _csrf_token: csrf },
+                dataType: 'json'
+            }).done(function (resp) {
+                if (resp && resp.success && window.iniciarCheckoutCountdown) {
+                    window.iniciarCheckoutCountdown(resp.expira_at_ms);
+                }
+            });
+
+            return actions.resolve();
         },
 
         // 2. Configuramos el monto convertido (Pasando el total de CLP a USD dividiendo por 900)
@@ -331,21 +344,17 @@ $checkout_expira_at_ms = $_SESSION['checkout_expira_at'] * 1000;
 <!-- ============================================================
      Lógica del countdown de checkout (OBJ-06)
      ============================================================
-     [PEDAGÓGICO] El timestamp de expiración viene del SERVIDOR
-     (data-expira-at-ms generado desde $_SESSION). Por eso el
-     contador es el mismo entre reloads, pestañas y reaperturas
-     del navegador — todos los clientes leen el mismo instante
-     objetivo. Cuando llega a 0 bloquea el form y PayPal. -->
+     [PEDAGÓGICO] El timestamp viene del servidor (api/timer.php
+     o data-expira-at-ms si la página se cargó con timer ya activo).
+     Exponemos window.iniciarCheckoutCountdown(expiraMs) para que
+     el onClick de PayPal pueda arrancar el contador al vuelo. -->
 <script>
 (function () {
     var $banner = $('#checkoutCountdown');
     if (!$banner.length) return;
 
-    var $tiempo = $('#checkoutCountdownTiempo');
-    var expira  = parseInt($banner.data('expira-at-ms'), 10);
-    if (!expira || isNaN(expira)) return;
-
-    var intervalo;
+    var $tiempo   = $('#checkoutCountdownTiempo');
+    var intervalo = null;
     var yaExpirado = false;
 
     function marcarExpirado() {
@@ -367,21 +376,41 @@ $checkout_expira_at_ms = $_SESSION['checkout_expira_at'] * 1000;
         });
     }
 
-    function tick() {
-        var msRestantes = expira - Date.now();
-        if (msRestantes <= 0) {
-            marcarExpirado();
-            clearInterval(intervalo);
-            return;
+    function arrancar(expiraMs) {
+        if (!expiraMs || isNaN(expiraMs)) return;
+
+        // Limpia un tick previo si re-iniciamos el contador.
+        if (intervalo) clearInterval(intervalo);
+        yaExpirado = false;
+
+        // Asegura que el banner sea visible.
+        $banner.removeClass('d-none').addClass('d-flex');
+
+        function tick() {
+            var msRestantes = expiraMs - Date.now();
+            if (msRestantes <= 0) {
+                marcarExpirado();
+                clearInterval(intervalo);
+                return;
+            }
+            var seg = Math.floor(msRestantes / 1000);
+            var mm = String(Math.floor(seg / 60)).padStart(2, '0');
+            var ss = String(seg % 60).padStart(2, '0');
+            $tiempo.text(mm + ':' + ss);
         }
-        var seg = Math.floor(msRestantes / 1000);
-        var mm = String(Math.floor(seg / 60)).padStart(2, '0');
-        var ss = String(seg % 60).padStart(2, '0');
-        $tiempo.text(mm + ':' + ss);
+
+        tick();
+        intervalo = setInterval(tick, 1000);
     }
 
-    tick();
-    intervalo = setInterval(tick, 1000);
+    // Exposición global para que el onClick de PayPal lo invoque.
+    window.iniciarCheckoutCountdown = arrancar;
+
+    // Si la página cargó con un timer ya iniciado en $_SESSION
+    // (porque el usuario refrescó después de clickear PayPal),
+    // lo retomamos automáticamente.
+    var preexistente = parseInt($banner.data('expira-at-ms'), 10);
+    if (preexistente > 0) arrancar(preexistente);
 })();
 </script>
 

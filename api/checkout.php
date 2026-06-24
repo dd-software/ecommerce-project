@@ -285,6 +285,11 @@ try {
         // ============================================================
         $pdo->commit();
 
+        // [PEDAGÓGICO - OBJ-06] La compra terminó OK: limpiamos la
+        // marca de countdown de la sesión para que el próximo
+        // checkout del usuario arranque con un timer fresco.
+        unset($_SESSION['checkout_expira_at']);
+
         // ============================================================
         // Respuesta exitosa
         // ============================================================

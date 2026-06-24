@@ -63,6 +63,26 @@ foreach ($items_carrito as $item) {
 }
 $totales = calcular_totales($items_totales);
 $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
+
+// ============================================================
+// Countdown persistente por sesión (OBJ-06)
+// ============================================================
+// [PEDAGÓGICO] Guardamos el timestamp de expiración en $_SESSION
+// para que el contador sobreviva a reloads, cierres de pestaña
+// e incluso a abrir el checkout en otra ventana. Como las
+// sesiones PHP son por-usuario, cada cliente tiene su propio
+// contador y no interfiere con el de otros.
+//
+// Sólo lo inicializamos si NO existe: una vez arrancado, el
+// contador sigue corriendo aunque el usuario cierre la pestaña.
+// Si llega a 0, queda marcado como expirado hasta que el usuario
+// complete el pago (api/checkout.php limpia la clave) o cierre
+// sesión.
+$ahora = time();
+if (empty($_SESSION['checkout_expira_at'])) {
+    $_SESSION['checkout_expira_at'] = $ahora + (RESERVA_MINUTOS * 60);
+}
+$checkout_expira_at_ms = $_SESSION['checkout_expira_at'] * 1000;
 ?>
 
 <script src="https://www.paypal.com/sdk/js?client-id=AS0Vpwu2uML769uxxby0p2XLqbcWhRYHcAqiyVcM48VztuLCjKdBRetSKdSPLAzmlLxgEzesfwrU8PkO&currency=USD"></script>
@@ -81,16 +101,15 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 <!-- ============================================================
      Countdown de la sesión de checkout (OBJ-06)
      ============================================================
-     [PEDAGÓGICO] Hace visible los RESERVA_MINUTOS de OBJ-06
-     justo donde el usuario está pagando. position: sticky lo
-     mantiene siempre visible aunque el usuario haga scroll.
-     z-index alto para quedar por encima del contenido.
-     RESERVA_MINUTOS se lee desde includes/config.php para
-     mantener una única fuente de verdad. -->
+     [PEDAGÓGICO] data-expira-at-ms lleva el timestamp UNIX EN MS
+     calculado en PHP desde $_SESSION. Así el contador es el mismo
+     entre reloads, pestañas y reaperturas del navegador mientras
+     viva la sesión PHP. position: sticky lo mantiene siempre
+     visible aunque el usuario haga scroll. -->
 <div id="checkoutCountdown"
      class="alert alert-warning d-flex align-items-center mb-4 shadow"
      role="status"
-     data-minutos="<?= (int) RESERVA_MINUTOS ?>"
+     data-expira-at-ms="<?= $checkout_expira_at_ms ?>"
      style="position: sticky; top: 1rem; z-index: 1000;">
     <span style="font-size: 1.5rem;" class="me-2">⏱️</span>
     <div class="flex-grow-1">
@@ -312,36 +331,46 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 <!-- ============================================================
      Lógica del countdown de checkout (OBJ-06)
      ============================================================
-     [PEDAGÓGICO] 100% client-side: arranca con RESERVA_MINUTOS
-     y descuenta cada segundo. Cuando llega a 0, bloquea el
-     formulario y el botón de PayPal para impedir un pago tardío. -->
+     [PEDAGÓGICO] El timestamp de expiración viene del SERVIDOR
+     (data-expira-at-ms generado desde $_SESSION). Por eso el
+     contador es el mismo entre reloads, pestañas y reaperturas
+     del navegador — todos los clientes leen el mismo instante
+     objetivo. Cuando llega a 0 bloquea el form y PayPal. -->
 <script>
 (function () {
     var $banner = $('#checkoutCountdown');
     if (!$banner.length) return;
 
     var $tiempo = $('#checkoutCountdownTiempo');
-    var minutos = parseInt($banner.data('minutos'), 10) || 10;
-    var expira  = Date.now() + (minutos * 60 * 1000);
+    var expira  = parseInt($banner.data('expira-at-ms'), 10);
+    if (!expira || isNaN(expira)) return;
+
     var intervalo;
+    var yaExpirado = false;
+
+    function marcarExpirado() {
+        if (yaExpirado) return;
+        yaExpirado = true;
+        $tiempo.text('00:00');
+        $banner
+            .removeClass('alert-warning')
+            .addClass('alert-danger')
+            .find('strong').text('La sesión de checkout expiró.');
+        $banner.find('.small').html(
+            'Vuelve al <a href="carrito.php" class="alert-link">carrito</a> ' +
+            'para empezar de nuevo.'
+        );
+        $('#form-checkout :input').prop('disabled', true);
+        $('#paypal-button-container').css({
+            'pointer-events': 'none',
+            'opacity': '0.4'
+        });
+    }
 
     function tick() {
         var msRestantes = expira - Date.now();
         if (msRestantes <= 0) {
-            $tiempo.text('00:00');
-            $banner
-                .removeClass('alert-warning')
-                .addClass('alert-danger')
-                .find('strong').text('La sesión de checkout expiró.');
-            $banner.find('.small').html(
-                'Vuelve al <a href="carrito.php" class="alert-link">carrito</a> ' +
-                'para empezar de nuevo.'
-            );
-            $('#form-checkout :input').prop('disabled', true);
-            $('#paypal-button-container').css({
-                'pointer-events': 'none',
-                'opacity': '0.4'
-            });
+            marcarExpirado();
             clearInterval(intervalo);
             return;
         }

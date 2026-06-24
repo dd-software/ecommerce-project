@@ -137,7 +137,7 @@ $stmt = $pdo->query("
         c.nombre AS categoria,
         COUNT(DISTINCT p.id) AS num_pedidos,
         COALESCE(SUM(dp.subtotal), 0) AS total_ventas
-    FROM detalle_pedidos dp
+    FROM detalles_pedido dp
     JOIN productos pr ON pr.id = dp.producto_id
     JOIN categorias c ON c.id = pr.categoria_id
     JOIN pedidos p ON p.id = dp.pedido_id
@@ -175,7 +175,7 @@ $stmt = $pdo->query("
     SELECT pr.nombre, pr.sku,
            SUM(dp.cantidad) AS unidades_vendidas,
            SUM(dp.subtotal) AS total_generado
-    FROM detalle_pedidos dp
+    FROM detalles_pedido dp
     JOIN productos pr ON pr.id = dp.producto_id
     JOIN pedidos p ON p.id = dp.pedido_id
     WHERE p.estado NOT IN ('cancelado', 'reembolsado')

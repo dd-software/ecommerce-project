@@ -321,7 +321,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ---------------------------------------------------------------------------
 -- 1. Administrador
 -- Email: admin@ecommerce.local
--- Password: Admin123!
+-- Password: admin123
 -- Hash bcrypt generado con coste 12
 -- ---------------------------------------------------------------------------
 INSERT INTO usuarios (nombre, apellido, email, password, rol, activo, fecha_registro)
@@ -329,7 +329,7 @@ VALUES (
     'Admin',
     'Sistema',
     'admin@ecommerce.local',
-    '$2y$12$LJ3m4ys3Gql.ZhkBARVOYeQOaXVKzXnXLXvGFCNrqhBIbLhR1HXRa',
+    '$2y$10$1909PKzWcEL4yH15XgpK5uVyeKK6msdQ5ZRxcxJKIR8iTiNYXc3SC',
     'admin',
     1,
     NOW()

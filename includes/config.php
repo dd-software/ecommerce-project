@@ -17,11 +17,15 @@ define('IVA', 19); // 19% IVA chileno
 define('COSTO_ENVIO', 4990); // $4.990 CLP
 define('RESERVA_MINUTOS', 10); // Las reservas expiran en 10 min
 
-// PayPal Sandbox
-define('PAYPAL_MODE', 'sandbox');
-define('PAYPAL_CLIENT_ID', 'TU_CLIENT_ID_SANDBOX');
-define('PAYPAL_SECRET', 'TU_SECRET_SANDBOX');
-define('PAYPAL_WEBHOOK_ID', '');
+// ============================================================
+// Configuración de PayPal
+// ============================================================
+// [PEDAGÓGICO] Usar 'sandbox' para pruebas y 'live' para producción
+// Para obtener Client ID: https://developer.paypal.com/dashboard/
+define('PAYPAL_MODE', 'sandbox'); // sandbox | live
+define('PAYPAL_CLIENT_ID', 'sb'); // Reemplazar con tu Client ID
+define('PAYPAL_SECRET', ''); // Reemplazar con tu Secret (solo para backend)
+define('PAYPAL_CURRENCY', 'CLP');
 
 // Variable global para scripts adicionales en el footer
 $scripts_adicionales = '';

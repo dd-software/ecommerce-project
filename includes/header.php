@@ -1,3 +1,25 @@
+<?php
+// ============================================================
+// HEADER - Versión Corregida
+// ============================================================
+// [PEDAGÓGICO] Este archivo debe incluirse DESPUÉS de toda la
+// lógica PHP (redirecciones, sesiones, validaciones, etc.)
+// para evitar errores de "headers already sent".
+
+// Iniciar sesión si no está iniciada (por seguridad)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Asegurar que SITE_URL esté definida
+if (!defined('SITE_URL')) {
+    define('SITE_URL', '/ecommerce-project');
+}
+
+if (!defined('SITE_NAME')) {
+    define('SITE_NAME', 'Mi Tienda Online');
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,41 +28,50 @@
          ============================================================ -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- [PEDAGÓGICO] Meta tag CSRF para peticiones AJAX.
-         JavaScript puede leer este valor y enviarlo en cabeceras
-         HTTP (X-CSRF-Token) al hacer fetch/axios. -->
     <meta name="csrf-token" content="<?= csrf_token() ?>">
-
     <title><?= SITE_NAME ?></title>
 
     <!-- ============================================================
          Bootstrap 5.3 CDN (CSS)
-         ============================================================
-         [PEDAGÓGICO] Bootstrap es el framework CSS más popular.
-         Incluye sistema de grillas responsivo, componentes UI
-         (navbar, cards, modales, botones) y utilidades.
-         CDN = Content Delivery Network, entrega archivos estáticos
-         desde servidores rápidos alrededor del mundo. -->
+         ============================================================ -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
           rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
           crossorigin="anonymous">
 
     <!-- ============================================================
-         Estilos personalizados
-         ============================================================
-         [PEDAGÓGICO] Si necesitas estilos adicionales a Bootstrap,
-         crea el archivo assets/css/estilos.css y descomenta la línea.
-         Por ahora Bootstrap 5.3 es suficiente para todo el diseño. -->
-    <!-- <link rel="stylesheet" href="<?= SITE_URL ?>/assets/css/estilos.css"> -->
+         Estilos personalizados (opcional)
+         ============================================================ -->
+    <style>
+        /* [PEDAGÓGICO] Estilos inline para evitar archivos extra */
+        .producto-imagen {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
+        .precio-oferta {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .precio-normal {
+            text-decoration: line-through;
+            color: #6c757d;
+            margin-right: 10px;
+        }
+        .carrito-badge {
+            font-size: 0.65rem;
+        }
+        .footer {
+            margin-top: 3rem;
+            padding: 1.5rem 0;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
 
     <!-- ============================================================
          jQuery 3.7 CDN
-         ============================================================
-         [PEDAGÓGICO] jQuery simplifica la manipulación del DOM,
-         peticiones AJAX y eventos en JavaScript. Se incluye antes
-         que otros scripts para que esté disponible globalmente. -->
+         ============================================================ -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
             integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
             crossorigin="anonymous">
@@ -50,9 +81,7 @@
 
     <!-- ============================================================
          Navbar Responsivo
-         ============================================================
-         [PEDAGÓGICO] navbar-expand-lg colapsa en pantallas
-         pequeñas (< lg). navbar-light + bg-light define colores. -->
+         ============================================================ -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
         <div class="container">
             <!-- Logo / Marca -->
@@ -75,18 +104,19 @@
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <!-- Catálogo -->
                     <li class="nav-item">
-                        <a class="nav-link" href="<?= SITE_URL ?>/index.php">
+                        <a class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : '' ?>" 
+                           href="<?= SITE_URL ?>/index.php">
                             📋 Catálogo
                         </a>
                     </li>
 
                     <!-- Carrito (con badge dinámico via JavaScript) -->
                     <li class="nav-item">
-                        <a class="nav-link position-relative" href="<?= SITE_URL ?>/carrito.php">
+                        <a class="nav-link position-relative <?= basename($_SERVER['PHP_SELF']) === 'carrito.php' ? 'active' : '' ?>" 
+                           href="<?= SITE_URL ?>/carrito.php">
                             🛍️ Carrito
                             <span id="carrito-contador"
-                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                                  style="font-size: 0.65rem;">
+                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger carrito-badge">
                                 0
                             </span>
                         </a>
@@ -107,26 +137,16 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end"
                                 aria-labelledby="usuarioDropdown">
-
-                                <!-- [PEDAGÓGICO] Enlace al historial de compras.
-                                     Los usuarios pueden ver sus pedidos aquí. -->
                                 <li>
                                     <a class="dropdown-item" href="<?= SITE_URL ?>/carrito.php">
                                         🛍️ Mi Carrito
                                     </a>
                                 </li>
-
-                                <!-- Mi Cuenta: perfil y historial de compras -->
                                 <li>
                                     <a class="dropdown-item" href="<?= SITE_URL ?>/cuenta.php">
                                         👤 Mi Cuenta
                                     </a>
                                 </li>
-
-                                <!-- [PEDAGÓGICO] Solo los administradores
-                                     ven el enlace al panel de administración.
-                                     La verificación es_role está en cada
-                                     página admin por seguridad. -->
                                 <?php if (es_admin()): ?>
                                 <li>
                                     <a class="dropdown-item" href="<?= SITE_URL ?>/admin/">
@@ -134,10 +154,7 @@
                                     </a>
                                 </li>
                                 <?php endif; ?>
-
                                 <li><hr class="dropdown-divider"></li>
-
-                                <!-- Cerrar sesión -->
                                 <li>
                                     <a class="dropdown-item text-danger"
                                        href="<?= SITE_URL ?>/logout.php">
@@ -149,12 +166,14 @@
                     <?php else: ?>
                         <!-- Usuario NO logueado -->
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= SITE_URL ?>/login.php">
+                            <a class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'login.php' ? 'active' : '' ?>" 
+                               href="<?= SITE_URL ?>/login.php">
                                 🔑 Iniciar Sesión
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= SITE_URL ?>/registro.php">
+                            <a class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'registro.php' ? 'active' : '' ?>" 
+                               href="<?= SITE_URL ?>/registro.php">
                                 📝 Registrarse
                             </a>
                         </li>
@@ -166,7 +185,5 @@
 
     <!-- ============================================================
          Contenedor Principal
-         ============================================================
-         Cada página debe extender su contenido dentro de este
-         contenedor para mantener una estructura consistente. -->
+         ============================================================ -->
     <main class="container my-4">

@@ -21,7 +21,7 @@ require_once __DIR__ . '/../includes/funciones.php';
 // usuario sea administrador. Si no lo es, redirige al login
 // o a la página principal.
 if (!esta_logueado() || !es_admin()) {
-    redireccionar(SITE_URL . '/login.php');
+    redireccionar(SITE_URL . 'login.php');
 }
 
 $pdo = getDB();

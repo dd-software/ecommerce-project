@@ -1,329 +1,384 @@
 <?php
 // ============================================================
-// API JSON: Procesar Checkout (Confirmar Compra)
+// API de Checkout - Procesa pagos con PayPal y Transferencia
 // ============================================================
-// [PEDAGÓGICO] Este endpoint procesa la compra via AJAX.
-// Requiere que el usuario esté logueado.
-//
-// Flujo transaccional:
-// 1. Validar sesión del usuario
-// 2. Validar token CSRF
-// 3. Validar datos de dirección de envío
-// 4. Obtener items del carrito del usuario
-// 5. Re-validar stock de todos los items
-// 6. BEGIN TRANSACTION
-// 7.   Generar número de orden
-// 8.   Insertar pedido (estado='pendiente')
-// 9.   Insertar detalles_pedido
-// 10.  Reservar inventario con expiración (10 min desde config)
-// 11.  Registrar movimientos_inventario
-// 12.  Limpiar carrito (o marcar como procesado)
-// 13. COMMIT
-// 14. Si algo falla: ROLLBACK + mensaje de error
-// 15. Devolver JSON con orden_id + total
-//
-// Respuesta: {success: bool, data: {orden_id, numero_orden, total}, message: string}
+// [PEDAGÓGICO] Este archivo maneja todas las operaciones
+// relacionadas con el checkout: crear orden PayPal, capturar
+// pago, y procesar pagos por transferencia.
 // ============================================================
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/funciones.php';
 
-// Forzar respuesta JSON
-header('Content-Type: application/json; charset=utf-8');
+// Configurar respuesta JSON
+header('Content-Type: application/json');
+
+// Iniciar sesión si no está iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $pdo = getDB();
-$respuesta = [
-    'success' => false,
-    'data'    => [],
-    'message' => '',
-];
 
-try {
-    // ============================================================
-    // 1. Verificar autenticación
-    // ============================================================
-    if (!esta_logueado()) {
-        throw new Exception('Debes iniciar sesión para completar la compra.');
-    }
-
-    $usuario_id = (int) $_SESSION['usuario_id'];
-
-    // ============================================================
-    // 2. Validar método POST y CSRF
-    // ============================================================
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        throw new Exception('Método no permitido. Usa POST.');
-    }
-
-    $token = $_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (!csrf_validar($token)) {
-        throw new Exception('Error de seguridad. Token CSRF inválido.');
-    }
-
-    // ============================================================
-    // 3. Validar datos de dirección de envío
-    // ============================================================
-    $calle        = trim($_POST['calle'] ?? '');
-    $ciudad       = trim($_POST['ciudad'] ?? '');
-    $region       = trim($_POST['region'] ?? '');
-    $codigo_postal = trim($_POST['codigo_postal'] ?? '');
-    $notas        = trim($_POST['notas'] ?? '');
-
-    if (empty($calle) || empty($ciudad) || empty($region)) {
-        throw new Exception('Completa todos los campos obligatorios de la dirección (calle, ciudad, región).');
-    }
-
-    // Construir dirección completa
-    $direccion_envio = "{$calle}, {$ciudad}, {$region}";
-    if (!empty($codigo_postal)) {
-        $direccion_envio .= ", CP: {$codigo_postal}";
-    }
-
-    // ============================================================
-    // 4. Obtener items del carrito del usuario
-    // ============================================================
-    // [PEDAGÓGICO] JOIN con productos para obtener el nombre actual
-    // del producto (se congela en detalles_pedido).
-    $stmt = $pdo->prepare("
-        SELECT ic.*, p.nombre, p.precio, p.precio_descuento
-        FROM items_carrito ic
-        JOIN productos p ON p.id = ic.producto_id
-        WHERE ic.usuario_id = :uid
-        ORDER BY ic.fecha_agregado ASC
-    ");
-    $stmt->execute([':uid' => $usuario_id]);
-    $items = $stmt->fetchAll();
-
-    if (empty($items)) {
-        throw new Exception('Tu carrito está vacío.');
-    }
-
-    // ============================================================
-    // 5. Re-validar stock de todos los items
-    // ============================================================
-    // [PEDAGÓGICO] Antes de crear la orden, verificamos que cada
-    // producto tenga stock suficiente. Esto evita que un producto
-    // se agote entre que el usuario lo agregó al carrito y ahora.
-    $errores_stock = [];
-
-    foreach ($items as $item) {
-        $stmt = $pdo->prepare("
-            SELECT cantidad, cantidad_reservada,
-                   (cantidad - cantidad_reservada) as stock_efectivo
-            FROM inventario
-            WHERE producto_id = :pid
-        ");
-        $stmt->execute([':pid' => $item['producto_id']]);
-        $inventario = $stmt->fetch();
-
-        $stock_efectivo = (int) ($inventario['stock_efectivo'] ?? 0);
-
-        if ($stock_efectivo < (int) $item['cantidad']) {
-            $errores_stock[] = "{$item['nombre']}: solicitaste {$item['cantidad']}, disponible {$stock_efectivo}";
-        }
-    }
-
-    if (!empty($errores_stock)) {
-        $mensaje = 'Stock insuficiente para los siguientes productos:<br>';
-        $mensaje .= implode('<br>', $errores_stock);
-        throw new Exception($mensaje);
-    }
-
-    // ============================================================
-    // 6. Calcular totales
-    // ============================================================
-    // [PEDAGÓGICO] El precio_unitario en items_carrito es el precio
-    // que se congeló al agregar (con descuento si aplicaba).
-    $items_totales = [];
-    foreach ($items as $item) {
-        $items_totales[] = [
-            'precio'   => $item['precio_unitario'],
-            'cantidad' => $item['cantidad'],
-        ];
-    }
-    $totales = calcular_totales($items_totales);
-
-    // ============================================================
-    // 7 - 13: TRANSACCIÓN: Crear orden, detalles, reservas
-    // ============================================================
-    // [PEDAGÓGICO] Usamos BEGIN TRANSACTION / COMMIT / ROLLBACK
-    // para asegurar que TODAS las operaciones se ejecuten o NINGUNA.
-    // Si algo falla a medio camino, hacemos ROLLBACK y la BD
-    // queda en el estado anterior (sin datos parciales).
-
-    $pdo->beginTransaction();
-
-    try {
-        // ============================================================
-        // 7. Generar número de orden
-        // ============================================================
-        $numero_orden = generar_numero_orden($pdo);
-
-        // ============================================================
-        // 8. Insertar pedido
-        // ============================================================
-        $stmt = $pdo->prepare("
-            INSERT INTO pedidos (numero, usuario_id, estado, subtotal, iva, costo_envio, total, direccion_envio, notas, fecha_creacion)
-            VALUES (:numero, :usuario_id, 'pendiente', :subtotal, :iva, :envio, :total, :direccion, :notas, NOW())
-        ");
-        $stmt->execute([
-            ':numero'       => $numero_orden,
-            ':usuario_id'   => $usuario_id,
-            ':subtotal'     => $totales['subtotal'],
-            ':iva'          => $totales['iva'],
-            ':envio'        => $totales['envio'],
-            ':total'        => $totales['total'],
-            ':direccion'    => $direccion_envio,
-            ':notas'        => $notas,
-        ]);
-
-        $pedido_id = (int) $pdo->lastInsertId();
-
-        // ============================================================
-        // 9. Insertar detalles del pedido
-        // ============================================================
-        // [PEDAGÓGICO] Congelamos nombre_producto y precio_unitario
-        // al momento de la compra. Si el producto cambia de precio
-        // o nombre después, el pedido conserva los valores originales.
-        $stmt_detalle = $pdo->prepare("
-            INSERT INTO detalles_pedido (pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal)
-            VALUES (:pedido_id, :producto_id, :nombre, :cantidad, :precio, :subtotal)
-        ");
-
-        foreach ($items as $item) {
-            $subtotal_item = (float) $item['precio_unitario'] * (int) $item['cantidad'];
-            $stmt_detalle->execute([
-                ':pedido_id'   => $pedido_id,
-                ':producto_id' => $item['producto_id'],
-                ':nombre'      => $item['nombre'],
-                ':cantidad'    => (int) $item['cantidad'],
-                ':precio'      => $item['precio_unitario'],
-                ':subtotal'    => $subtotal_item,
-            ]);
-        }
-
-        // ============================================================
-        // 10. Reservar inventario con expiración
-        // ============================================================
-        // [PEDAGÓGICO] Reservar stock significa incrementar
-        // cantidad_reservada en inventario y crear un registro en
-        // reservas_inventario con fecha de expiración. Si el pago
-        // no se confirma en 10 minutos, la reserva expira y el
-        // stock vuelve a estar disponible.
-        $fecha_expiracion = date('Y-m-d H:i:s', time() + (RESERVA_MINUTOS * 60));
-
-        $stmt_inv = $pdo->prepare("
-            UPDATE inventario
-            SET cantidad_reservada = cantidad_reservada + :cant
-            WHERE producto_id = :pid
-        ");
-
-        $stmt_reserva = $pdo->prepare("
-            INSERT INTO reservas_inventario (orden_id, producto_id, cantidad, estado, fecha_creacion, fecha_expiracion)
-            VALUES (:orden_id, :producto_id, :cantidad, 'activa', NOW(), :fecha_expiracion)
-        ");
-
-        foreach ($items as $item) {
-            // Actualizar cantidad_reservada en inventario
-            $stmt_inv->execute([
-                ':cant' => (int) $item['cantidad'],
-                ':pid'  => $item['producto_id'],
-            ]);
-
-            // Crear registro de reserva
-            $stmt_reserva->execute([
-                ':orden_id'         => $pedido_id,
-                ':producto_id'      => $item['producto_id'],
-                ':cantidad'         => (int) $item['cantidad'],
-                ':fecha_expiracion' => $fecha_expiracion,
-            ]);
-        }
-
-        // ============================================================
-        // 11. Registrar movimientos_inventario (tipo 'reserva')
-        // ============================================================
-        // [PEDAGÓGICO] Cada cambio en el inventario debe quedar
-        // registrado para auditoría. Los movimientos tipo 'reserva'
-        // documentan que se apartó stock para una orden pendiente.
-        $stmt_mov = $pdo->prepare("
-            INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, referencia, fecha)
-            VALUES (:producto_id, 'reserva', :cantidad, :referencia, NOW())
-        ");
-
-        foreach ($items as $item) {
-            $stmt_mov->execute([
-                ':producto_id' => $item['producto_id'],
-                ':cantidad'    => (int) $item['cantidad'],
-                ':referencia'  => $numero_orden,
-            ]);
-        }
-
-        // ============================================================
-        // 12. Limpiar carrito del usuario
-        // ============================================================
-        // [PEDAGÓGICO] El carrito se vacía SOLO si todo salió bien.
-        // Si hay ROLLBACK, los items del carrito se conservan.
-        $stmt = $pdo->prepare("DELETE FROM items_carrito WHERE usuario_id = :uid");
-        $stmt->execute([':uid' => $usuario_id]);
-
-        // ============================================================
-        // 13. COMMIT: Confirmar la transacción
-        // ============================================================
-        $pdo->commit();
-
-        // ============================================================
-        // Respuesta exitosa
-        // ============================================================
-        $respuesta['success'] = true;
-        $respuesta['data'] = [
-            'orden_id'     => $pedido_id,
-            'numero_orden' => $numero_orden,
-            'total'        => (float) $totales['total'],
-            'subtotal'     => (float) $totales['subtotal'],
-            'iva'          => (float) $totales['iva'],
-            'envio'        => (float) $totales['envio'],
-        ];
-        $respuesta['message'] = '✅ ¡Orden creada! Redirigiendo al pago... Número de orden: ' . $numero_orden;
-
-        // Guardar orden_id en sesión para el flujo de pago
-        $_SESSION['orden_pendiente_id'] = $pedido_id;
-
-    } catch (Exception $e) {
-        // ============================================================
-        // ROLLBACK: Revertir todos los cambios
-        // ============================================================
-        // [PEDAGÓGICO] Si algo falla a medio camino, deshacemos todo
-        // para no dejar datos huérfanos.
-        $pdo->rollBack();
-        throw $e; // Relanzar para que el catch exterior lo maneje
-    }
-
-} catch (Exception $e) {
-    $respuesta['success'] = false;
-    $respuesta['message'] = $e->getMessage();
+// ============================================================
+// Verificar autenticación
+// ============================================================
+if (!esta_logueado()) {
+    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    exit;
 }
 
 // ============================================================
-// [PEDAGÓGICO] Detectar si la petición espera JSON (AJAX) o es
-// un formulario tradicional. Si es formulario, redirigimos con
-// mensajes en sesión para mejor experiencia de usuario.
+// Obtener acción
 // ============================================================
-$es_ajax = (
-    strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false
-    || ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest'
-);
+$accion = $_POST['accion'] ?? '';
 
-if ($es_ajax) {
-    // AJAX: devolver JSON como siempre
-    die(json_encode($respuesta, JSON_UNESCAPED_UNICODE));
-} else {
-    // Formulario tradicional: redirigir con mensaje en sesión
-    if ($respuesta['success']) {
-        $_SESSION['exito'] = $respuesta['message'];
-        redireccionar('../pago.php?orden_id=' . (int) $respuesta['data']['orden_id']);
-    } else {
-        $_SESSION['error'] = $respuesta['message'];
-        redireccionar('../checkout.php');
+// ============================================================
+// Función: Obtener datos del carrito
+// ============================================================
+function obtenerDatosCarrito($pdo, $usuario_id) {
+    $stmt = $pdo->prepare("
+        SELECT ic.*, p.nombre, p.sku
+        FROM items_carrito ic
+        JOIN productos p ON p.id = ic.producto_id
+        WHERE ic.usuario_id = :uid
+    ");
+    $stmt->execute([':uid' => $usuario_id]);
+    return $stmt->fetchAll();
+}
+
+// ============================================================
+// Función: Calcular totales del carrito
+// ============================================================
+function calcularTotalesCarrito($items) {
+    $items_totales = [];
+    foreach ($items as $item) {
+        $items_totales[] = [
+            'precio' => $item['precio_unitario'],
+            'cantidad' => $item['cantidad']
+        ];
     }
+    return calcular_totales($items_totales);
+}
+
+// ============================================================
+// Función: Crear orden en la base de datos (CORREGIDA)
+// ============================================================
+function crearOrdenDB($pdo, $usuario_id, $items, $totales, $direccion, $metodo_pago, $paypal_order_id = null) {
+    try {
+        // Generar número de orden
+        $numero_orden = generar_numero_orden($pdo);
+        
+        // Iniciar transacción
+        $pdo->beginTransaction();
+        
+        // Construir dirección completa (para campo legacy)
+        $direccion_completa = $direccion['calle'] . ', ' . $direccion['ciudad'] . ', ' . $direccion['region'];
+        if (!empty($direccion['codigo_postal'])) {
+            $direccion_completa .= ', CP: ' . $direccion['codigo_postal'];
+        }
+        
+        // Insertar pedido - Usando los campos correctos de tu tabla
+        $stmt = $pdo->prepare("
+            INSERT INTO pedidos (
+                numero, usuario_id, estado, subtotal, iva, envio, total,
+                calle, ciudad, region, codigo_postal, notas,
+                direccion_envio, metodo_pago, paypal_order_id,
+                fecha_creacion
+            ) VALUES (
+                :numero, :usuario_id, 'pendiente', :subtotal, :iva, :envio, :total,
+                :calle, :ciudad, :region, :codigo_postal, :notas,
+                :direccion_envio, :metodo_pago, :paypal_order_id,
+                NOW()
+            )
+        ");
+        
+        $stmt->execute([
+            ':numero' => $numero_orden,
+            ':usuario_id' => $usuario_id,
+            ':subtotal' => $totales['subtotal'],
+            ':iva' => $totales['iva'],
+            ':envio' => $totales['envio'],
+            ':total' => $totales['total'],
+            ':calle' => $direccion['calle'],
+            ':ciudad' => $direccion['ciudad'],
+            ':region' => $direccion['region'],
+            ':codigo_postal' => $direccion['codigo_postal'] ?? '',
+            ':notas' => $direccion['notas'] ?? '',
+            ':direccion_envio' => $direccion_completa,
+            ':metodo_pago' => $metodo_pago,
+            ':paypal_order_id' => $paypal_order_id
+        ]);
+        
+        $pedido_id = $pdo->lastInsertId();
+        
+        // Insertar items del pedido - Usando detalles_pedido
+        $stmt_detalle = $pdo->prepare("
+            INSERT INTO detalles_pedido (
+                pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal
+            ) VALUES (
+                :pedido_id, :producto_id, :nombre_producto, :cantidad, :precio_unitario, :subtotal
+            )
+        ");
+        
+        foreach ($items as $item) {
+            $subtotal_item = (float) $item['precio_unitario'] * (int) $item['cantidad'];
+            $stmt_detalle->execute([
+                ':pedido_id' => $pedido_id,
+                ':producto_id' => $item['producto_id'],
+                ':nombre_producto' => $item['nombre'],
+                ':cantidad' => (int) $item['cantidad'],
+                ':precio_unitario' => $item['precio_unitario'],
+                ':subtotal' => $subtotal_item
+            ]);
+            
+            // Actualizar stock (si existe campo stock en productos)
+            // Si usas inventario separado, ajusta aquí
+            $stmt_stock = $pdo->prepare("
+                UPDATE productos 
+                SET stock = stock - :cantidad 
+                WHERE id = :producto_id
+            ");
+            $stmt_stock->execute([
+                ':cantidad' => (int) $item['cantidad'],
+                ':producto_id' => $item['producto_id']
+            ]);
+        }
+        
+        // Limpiar carrito
+        $stmt = $pdo->prepare("DELETE FROM items_carrito WHERE usuario_id = :uid");
+        $stmt->execute([':uid' => $usuario_id]);
+        
+        // Confirmar transacción
+        $pdo->commit();
+        
+        return [
+            'success' => true,
+            'pedido_id' => $pedido_id,
+            'numero_orden' => $numero_orden
+        ];
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+}
+
+// ============================================================
+// Procesar acciones
+// ============================================================
+try {
+    $response = ['success' => false, 'message' => '', 'data' => []];
+    
+    switch ($accion) {
+        // ============================================================
+        // 1. Crear orden PayPal
+        // ============================================================
+        case 'crear_orden':
+            // Obtener datos del carrito
+            $items = obtenerDatosCarrito($pdo, $_SESSION['usuario_id']);
+            if (empty($items)) {
+                $response['message'] = 'Carrito vacío';
+                break;
+            }
+            
+            // Validar dirección
+            $calle = trim($_POST['calle'] ?? '');
+            $ciudad = trim($_POST['ciudad'] ?? '');
+            $region = trim($_POST['region'] ?? '');
+            
+            if (empty($calle) || empty($ciudad) || empty($region)) {
+                $response['message'] = 'Dirección incompleta';
+                break;
+            }
+            
+            // Calcular total
+            $totales = calcularTotalesCarrito($items);
+            
+            // Guardar dirección en sesión para usarla después
+            $_SESSION['checkout_direccion'] = [
+                'calle' => $calle,
+                'ciudad' => $ciudad,
+                'region' => $region,
+                'codigo_postal' => $_POST['codigo_postal'] ?? '',
+                'notas' => $_POST['notas'] ?? ''
+            ];
+            
+            // Generar ID de orden PayPal (simulado por ahora)
+            $order_id = 'PAYPAL-' . date('Ymd') . '-' . uniqid();
+            
+            // Crear orden en la base de datos
+            $direccion = $_SESSION['checkout_direccion'];
+            $resultado = crearOrdenDB(
+                $pdo,
+                $_SESSION['usuario_id'],
+                $items,
+                $totales,
+                $direccion,
+                'paypal',
+                $order_id
+            );
+            
+            if ($resultado['success']) {
+                $response['success'] = true;
+                $response['message'] = 'Orden creada correctamente';
+                $response['data'] = [
+                    'order_id' => $order_id,
+                    'order_number' => $resultado['numero_orden'],
+                    'pedido_id' => $resultado['pedido_id']
+                ];
+            } else {
+                $response['message'] = 'Error al crear la orden';
+            }
+            break;
+            
+        // ============================================================
+        // 2. Capturar pago PayPal
+        // ============================================================
+        case 'capturar_pago':
+            $order_id = $_POST['order_id'] ?? '';
+            $payer_id = $_POST['payer_id'] ?? '';
+            $payment_id = $_POST['payment_id'] ?? '';
+            
+            if (empty($order_id) || empty($payer_id) || empty($payment_id)) {
+                $response['message'] = 'Datos de pago incompletos';
+                break;
+            }
+            
+            // Buscar el pedido por paypal_order_id
+            $stmt = $pdo->prepare("
+                SELECT id, numero 
+                FROM pedidos 
+                WHERE paypal_order_id = :order_id 
+                AND usuario_id = :usuario_id
+                AND estado = 'pendiente'
+            ");
+            $stmt->execute([
+                ':order_id' => $order_id,
+                ':usuario_id' => $_SESSION['usuario_id']
+            ]);
+            $pedido = $stmt->fetch();
+            
+            if (!$pedido) {
+                $response['message'] = 'Pedido no encontrado';
+                break;
+            }
+            
+            // Actualizar estado del pedido a 'pagado'
+            $stmt = $pdo->prepare("
+                UPDATE pedidos 
+                SET estado = 'pagado',
+                    paypal_payer_id = :payer_id,
+                    paypal_payment_id = :payment_id,
+                    fecha_pago = NOW()
+                WHERE id = :pedido_id
+            ");
+            $stmt->execute([
+                ':payer_id' => $payer_id,
+                ':payment_id' => $payment_id,
+                ':pedido_id' => $pedido['id']
+            ]);
+            
+            $response['success'] = true;
+            $response['message'] = 'Pago confirmado correctamente';
+            $response['data'] = [
+                'order_number' => $pedido['numero'],
+                'redirect' => SITE_URL . '/exito.php?orden=' . $pedido['numero']
+            ];
+            break;
+            
+        // ============================================================
+        // 3. Procesar transferencia bancaria
+        // ============================================================
+        case 'transferencia':
+            // Obtener datos del carrito
+            $items = obtenerDatosCarrito($pdo, $_SESSION['usuario_id']);
+            if (empty($items)) {
+                $response['message'] = 'Carrito vacío';
+                break;
+            }
+            
+            // Validar dirección
+            $calle = trim($_POST['calle'] ?? '');
+            $ciudad = trim($_POST['ciudad'] ?? '');
+            $region = trim($_POST['region'] ?? '');
+            
+            if (empty($calle) || empty($ciudad) || empty($region)) {
+                $response['message'] = 'Dirección incompleta';
+                break;
+            }
+            
+            // Calcular total
+            $totales = calcularTotalesCarrito($items);
+            
+            $direccion = [
+                'calle' => $calle,
+                'ciudad' => $ciudad,
+                'region' => $region,
+                'codigo_postal' => $_POST['codigo_postal'] ?? '',
+                'notas' => $_POST['notas'] ?? ''
+            ];
+            
+            // Crear orden
+            $resultado = crearOrdenDB(
+                $pdo,
+                $_SESSION['usuario_id'],
+                $items,
+                $totales,
+                $direccion,
+                'transferencia'
+            );
+            
+            if ($resultado['success']) {
+                // Guardar datos de transferencia en sesión
+                $_SESSION['transferencia_datos'] = [
+                    'banco' => TRANSFERENCIA_BANCO ?? 'Banco de Chile',
+                    'cuenta' => TRANSFERENCIA_CUENTA ?? '123456789',
+                    'titular' => TRANSFERENCIA_TITULAR ?? 'Mi Tienda Online',
+                    'rut' => TRANSFERENCIA_RUT ?? '76.123.456-7',
+                    'email' => TRANSFERENCIA_EMAIL ?? 'pagos@mitienda.cl',
+                    'monto' => formato_precio($totales['total'])
+                ];
+                
+                $response['success'] = true;
+                $response['message'] = 'Orden creada para transferencia';
+                $response['data'] = [
+                    'order_number' => $resultado['numero_orden'],
+                    'redirect' => SITE_URL . '/exito.php?orden=' . $resultado['numero_orden'] . '&metodo=transferencia'
+                ];
+            } else {
+                $response['message'] = 'Error al crear la orden';
+            }
+            break;
+            
+        // ============================================================
+        // 4. Cancelar orden
+        // ============================================================
+        case 'cancelar_orden':
+            $order_id = $_POST['order_id'] ?? '';
+            if (!empty($order_id)) {
+                $stmt = $pdo->prepare("
+                    UPDATE pedidos 
+                    SET estado = 'cancelado' 
+                    WHERE paypal_order_id = :order_id 
+                    AND estado = 'pendiente'
+                ");
+                $stmt->execute([':order_id' => $order_id]);
+            }
+            $response['success'] = true;
+            $response['message'] = 'Orden cancelada';
+            break;
+            
+        default:
+            $response['message'] = 'Acción no válida';
+    }
+    
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
+    
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Error: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
 }

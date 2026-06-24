@@ -78,6 +78,32 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
     <?php unset($_SESSION['error']); ?>
 <?php endif; ?>
 
+<!-- ============================================================
+     Countdown de la sesión de checkout (OBJ-06)
+     ============================================================
+     [PEDAGÓGICO] Hace visible los RESERVA_MINUTOS de OBJ-06
+     justo donde el usuario está pagando. position: sticky lo
+     mantiene siempre visible aunque el usuario haga scroll.
+     z-index alto para quedar por encima del contenido.
+     RESERVA_MINUTOS se lee desde includes/config.php para
+     mantener una única fuente de verdad. -->
+<div id="checkoutCountdown"
+     class="alert alert-warning d-flex align-items-center mb-4 shadow"
+     role="status"
+     data-minutos="<?= (int) RESERVA_MINUTOS ?>"
+     style="position: sticky; top: 1rem; z-index: 1000;">
+    <span style="font-size: 1.5rem;" class="me-2">⏱️</span>
+    <div class="flex-grow-1">
+        <strong>Tu sesión de pago expira en
+            <span id="checkoutCountdownTiempo">--:--</span>
+        </strong>
+        <div class="small text-muted">
+            Completa el pago antes de que termine el tiempo o tu
+            reserva de stock se liberará.
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
     <div class="col-lg-7">
         <div class="card shadow-sm">
@@ -281,6 +307,53 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
             console.error(err);
         }
     }).render('#paypal-button-container');
+</script>
+
+<!-- ============================================================
+     Lógica del countdown de checkout (OBJ-06)
+     ============================================================
+     [PEDAGÓGICO] 100% client-side: arranca con RESERVA_MINUTOS
+     y descuenta cada segundo. Cuando llega a 0, bloquea el
+     formulario y el botón de PayPal para impedir un pago tardío. -->
+<script>
+(function () {
+    var $banner = $('#checkoutCountdown');
+    if (!$banner.length) return;
+
+    var $tiempo = $('#checkoutCountdownTiempo');
+    var minutos = parseInt($banner.data('minutos'), 10) || 10;
+    var expira  = Date.now() + (minutos * 60 * 1000);
+    var intervalo;
+
+    function tick() {
+        var msRestantes = expira - Date.now();
+        if (msRestantes <= 0) {
+            $tiempo.text('00:00');
+            $banner
+                .removeClass('alert-warning')
+                .addClass('alert-danger')
+                .find('strong').text('La sesión de checkout expiró.');
+            $banner.find('.small').html(
+                'Vuelve al <a href="carrito.php" class="alert-link">carrito</a> ' +
+                'para empezar de nuevo.'
+            );
+            $('#form-checkout :input').prop('disabled', true);
+            $('#paypal-button-container').css({
+                'pointer-events': 'none',
+                'opacity': '0.4'
+            });
+            clearInterval(intervalo);
+            return;
+        }
+        var seg = Math.floor(msRestantes / 1000);
+        var mm = String(Math.floor(seg / 60)).padStart(2, '0');
+        var ss = String(seg % 60).padStart(2, '0');
+        $tiempo.text(mm + ':' + ss);
+    }
+
+    tick();
+    intervalo = setInterval(tick, 1000);
+})();
 </script>
 
 <?php

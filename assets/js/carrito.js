@@ -214,8 +214,11 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (respuesta) {
                 if (respuesta.success) {
-                    // Actualizar badge sin recargar y notificar al usuario.
-                    actualizarBadgeCarrito(true);
+                    // Actualizar badge sin recargar. Pasamos `false` para
+                    // que actualizarBadgeCarrito NO muestre su propio toast
+                    // ("Carrito obtenido correctamente") — ya mostramos el
+                    // nuestro abajo y queremos evitar la notificación doble.
+                    actualizarBadgeCarrito(false);
                     mostrarMensajeExito('✅ Producto agregado al carrito.');
                 } else {
                     mostrarMensajeError(respuesta.message || 'Error al agregar producto.');
@@ -269,7 +272,9 @@ $('.agregar-carrito').on('click', function (e) {
 
         success: function(respuesta) {
             if (respuesta.success) {
-                actualizarBadgeCarrito(true);
+                // false: evitar el toast duplicado de actualizarBadgeCarrito,
+                // ya mostramos uno propio justo abajo.
+                actualizarBadgeCarrito(false);
                 mostrarMensajeExito('✅ Producto agregado al carrito.');
             } else {
                 mostrarMensajeError(
@@ -426,8 +431,10 @@ $('.agregar-carrito').on('click', function (e) {
                     $form.closest('tr').fadeOut(300, function () {
                         $(this).remove();
 
-                        // Actualizar badge
-                        actualizarBadgeCarrito(true);
+                        // Actualizar badge sin toast: borrar un item ya
+                        // es una acción visualmente clara (la fila se
+                        // desvanece), no hace falta notificarlo además.
+                        actualizarBadgeCarrito(false);
 
                         // Actualizar totales
                         actualizarTotalesCarrito();

@@ -67,15 +67,20 @@ $total_unidades = array_sum(array_column($items_totales, 'cantidad') ?: [0]);
 // ============================================================
 // Countdown persistente por sesión (OBJ-06)
 // ============================================================
-// [PEDAGÓGICO] El timestamp de expiración vive en $_SESSION pero
-// NO se inicializa al cargar la página. Sólo arranca cuando el
-// usuario hace clic en PayPal (vía AJAX a api/timer.php). Así:
-//   - Si llega y nunca paga: no hay timer (no fuerza nada)
-//   - Si vuelve al carrito o agrega items: se borra (reset)
-//   - Si recarga checkout.php con timer ya iniciado: continúa
-$checkout_expira_at_ms = !empty($_SESSION['checkout_expira_at'])
-    ? $_SESSION['checkout_expira_at'] * 1000
-    : 0;
+// [PEDAGÓGICO] El timestamp vive en $_SESSION. Reglas:
+//   - Al entrar a checkout.php SIEMPRE hay timer: si no existe,
+//     se inicializa a now + RESERVA_MINUTOS·60.
+//   - Si ya existe (porque venimos de un reload o de otra pestaña):
+//     se mantiene → el contador no salta.
+//   - Reset: carrito.php y api/carrito.php#agregar borran la clave
+//     al modificar el carrito o volver atrás, así el próximo
+//     ingreso a checkout.php arranca limpio en 10:00.
+//   - api/checkout.php#commit también la borra al terminar la
+//     compra exitosa.
+if (empty($_SESSION['checkout_expira_at'])) {
+    $_SESSION['checkout_expira_at'] = time() + (RESERVA_MINUTOS * 60);
+}
+$checkout_expira_at_ms = $_SESSION['checkout_expira_at'] * 1000;
 ?>
 
 <script src="https://www.paypal.com/sdk/js?client-id=AS0Vpwu2uML769uxxby0p2XLqbcWhRYHcAqiyVcM48VztuLCjKdBRetSKdSPLAzmlLxgEzesfwrU8PkO&currency=USD"></script>
@@ -94,13 +99,14 @@ $checkout_expira_at_ms = !empty($_SESSION['checkout_expira_at'])
 <!-- ============================================================
      Countdown de la sesión de checkout (OBJ-06)
      ============================================================
-     [PEDAGÓGICO] Inicia OCULTO. Se activa cuando el usuario hace
-     clic en PayPal (api/timer.php?action=iniciar guarda el timestamp
-     en $_SESSION). Si la página se recarga con timer ya iniciado,
-     el banner se vuelve a mostrar usando data-expira-at-ms.
+     [PEDAGÓGICO] Banner SIEMPRE visible en checkout. El timestamp
+     viene del servidor (data-expira-at-ms) y persiste por sesión
+     PHP, por lo que sobrevive a reloads y se reinicia automáticamente
+     cuando el usuario modifica el carrito (carrito.php / api/carrito.php
+     borran la clave de la sesión).
      position: sticky lo mantiene visible al hacer scroll. -->
 <div id="checkoutCountdown"
-     class="alert alert-warning align-items-center mb-4 shadow <?= $checkout_expira_at_ms > 0 ? 'd-flex' : 'd-none' ?>"
+     class="alert alert-warning d-flex align-items-center mb-4 shadow"
      role="status"
      data-expira-at-ms="<?= $checkout_expira_at_ms ?>"
      style="position: sticky; top: 1rem; z-index: 1000;">
@@ -269,7 +275,6 @@ $checkout_expira_at_ms = !empty($_SESSION['checkout_expira_at'])
 <script>
     paypal.Buttons({
         // 1. Validamos que la dirección no esté vacía antes de abrir la interfaz de PayPal
-        //    Y arrancamos el countdown de la sesión de checkout (OBJ-06).
         onClick: function(data, actions) {
             const calle = document.getElementById('calle').value.trim();
             const ciudad = document.getElementById('ciudad').value.trim();
@@ -279,25 +284,6 @@ $checkout_expira_at_ms = !empty($_SESSION['checkout_expira_at'])
                 alert('⚠️ Por favor, completa los campos obligatorios de la dirección (Calle, Ciudad y Región) antes de pagar.');
                 return actions.reject();
             }
-
-            // [PEDAGÓGICO - OBJ-06] El timer arranca AQUÍ (no al cargar
-            // la página). AJAX a api/timer.php?action=iniciar guarda
-            // el timestamp en $_SESSION y nos lo devuelve para activar
-            // el banner. Si la petición falla, igual dejamos pasar a
-            // PayPal (no bloqueamos el pago por un timer cosmético).
-            const csrf = $('meta[name="csrf-token"]').attr('content');
-            $.ajax({
-                url: 'api/timer.php',
-                method: 'POST',
-                async: false, // queremos el ms ANTES de seguir
-                data: { action: 'iniciar', _csrf_token: csrf },
-                dataType: 'json'
-            }).done(function (resp) {
-                if (resp && resp.success && window.iniciarCheckoutCountdown) {
-                    window.iniciarCheckoutCountdown(resp.expira_at_ms);
-                }
-            });
-
             return actions.resolve();
         },
 
@@ -344,10 +330,11 @@ $checkout_expira_at_ms = !empty($_SESSION['checkout_expira_at'])
 <!-- ============================================================
      Lógica del countdown de checkout (OBJ-06)
      ============================================================
-     [PEDAGÓGICO] El timestamp viene del servidor (api/timer.php
-     o data-expira-at-ms si la página se cargó con timer ya activo).
-     Exponemos window.iniciarCheckoutCountdown(expiraMs) para que
-     el onClick de PayPal pueda arrancar el contador al vuelo. -->
+     [PEDAGÓGICO] El timestamp viene del servidor en data-expira-at-ms
+     (renderizado por PHP desde $_SESSION). El JS sólo descuenta y
+     bloquea el formulario al llegar a 0. Como el servidor garantiza
+     que $_SESSION['checkout_expira_at'] existe en cada carga de
+     checkout.php, el banner siempre tiene un tiempo válido. -->
 <script>
 (function () {
     var $banner = $('#checkoutCountdown');

@@ -35,7 +35,6 @@ if (empty($numero_orden)) {
     $sql  = "SELECT * FROM pedidos WHERE numero = :numero";
     $params = [':numero' => $numero_orden];
 
-    // Si no es admin, filtrar por usuario actual
     if (!es_admin() && esta_logueado()) {
         $sql .= " AND usuario_id = :uid";
         $params[':uid'] = $_SESSION['usuario_id'];
@@ -48,6 +47,12 @@ if (empty($numero_orden)) {
     if (!$pedido) {
         $error_msg = 'Orden no encontrada. Verifica el número e intenta de nuevo.';
     } else {
+        if (!es_admin() && !esta_logueado()) {
+            if (empty($_SESSION['ultima_orden']) || $_SESSION['ultima_orden'] !== $numero_orden) {
+                $pedido = null;
+                $error_msg = 'Orden no encontrada. Verifica el número e intenta de nuevo.';
+            }
+        }
         // ============================================================
         // Obtener detalles de la orden (productos comprados)
         // ============================================================
@@ -91,10 +96,14 @@ if (empty($numero_orden)) {
             <div class="text-center mb-5">
                 <!-- Icono de éxito -->
                 <div style="font-size: 5rem;">✅</div>
-                <h2 class="mt-3 text-success">¡Compra realizada con éxito!</h2>
+                <h2 class="mt-3 text-success">¡Orden registrada con éxito!</h2>
                 <p class="text-muted fs-5">
+                <?php if (esta_logueado()): ?>
                     Gracias por tu compra, <strong><?= escapar($_SESSION['usuario_nombre'] ?? '') ?></strong>.
-                </p>
+                <?php else: ?>
+                    Gracias por tu compra. Tu orden ha sido registrada correctamente.
+                <?php endif; ?>
+            </p>
             </div>
 
             <!-- Card con resumen de la orden -->
@@ -125,7 +134,7 @@ if (empty($numero_orden)) {
                         <!-- Mini imagen -->
                         <div class="me-3">
                             <?php if (!empty($det['imagen_url'])): ?>
-                                <img src="<?= escapar($det['imagen_url']) ?>"
+                                <img src="<?= escapar(ruta_imagen_producto($det['imagen_url'])) ?>"
                                      alt="<?= escapar($det['nombre_producto']) ?>"
                                      class="rounded"
                                      style="width: 45px; height: 45px; object-fit: cover;">

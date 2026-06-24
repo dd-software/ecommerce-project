@@ -13,7 +13,20 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/funciones.php';
 
-require_once __DIR__ . '/includes/header.php';
+// ============================================================
+// Verificar si ya está logueado
+// ============================================================
+// [PEDAGÓGICO] Si el usuario ya tiene sesión activa y hay un
+// parámetro redirect, lo redirigimos directamente para que
+// no vea el formulario de login.
+$redirect = $_GET['redirect'] ?? '';
+if (esta_logueado() && !empty($redirect)) {
+    if (strpos($redirect, 'http') !== 0) {
+        redireccionar($redirect);
+    } else {
+        redireccionar('index.php');
+    }
+}
 
 $pdo    = getDB();
 $error  = '';
@@ -184,6 +197,8 @@ $redirect = $_GET['redirect'] ?? 'index.php';
 if (strpos($redirect, 'http') === 0) {
     $redirect = 'index.php';
 }
+
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <!-- ============================================================

@@ -108,8 +108,13 @@
                             <ul class="dropdown-menu dropdown-menu-end"
                                 aria-labelledby="usuarioDropdown">
 
-                                <!-- [PEDAGÓGICO] Enlace al historial de compras.
+                                        <!-- [PEDAGÓGICO] Enlace al historial de compras.
                                      Los usuarios pueden ver sus pedidos aquí. -->
+                                <li>
+                                    <a class="dropdown-item" href="<?= SITE_URL ?>/cuenta.php">
+                                        👤 Mi Cuenta
+                                    </a>
+                                </li>
                                 <li>
                                     <a class="dropdown-item" href="<?= SITE_URL ?>/carrito.php">
                                         🛍️ Mi Carrito

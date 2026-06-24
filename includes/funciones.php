@@ -214,6 +214,40 @@ function formato_precio($cantidad): string
     return '$' . number_format((float) $cantidad, 0, ',', '.');
 }
 
+/**
+ * Convierte una ruta de imagen de producto en una URL pública.
+ *
+ * Si la ruta ya es absoluta o ya contiene assets/img/, se deja tal cual.
+ * Si es un nombre de archivo o ruta relativa, se asume que está en assets/img.
+ *
+ * @param string|null $ruta Ruta guardada en la BD o envíada por el formulario
+ * @return string URL completa de la imagen o cadena vacía si no hay ruta
+ */
+function ruta_imagen_producto($ruta): string
+{
+    $ruta = trim((string) $ruta);
+    if ($ruta === '') {
+        return '';
+    }
+
+    // Si ya es una URL completa, se usa tal cual
+    if (preg_match('#^(https?:)?//#i', $ruta)) {
+        return $ruta;
+    }
+
+    // Si es una ruta absoluta en el servidor, se la convierte a URL pública
+    if (strpos($ruta, '/') === 0) {
+        return rtrim(SITE_URL, '/') . $ruta;
+    }
+
+    // Si ya contiene assets/img/, evitamos duplicar el prefijo
+    if (stripos($ruta, 'assets/img/') !== false) {
+        return rtrim(SITE_URL, '/') . '/' . ltrim($ruta, '/');
+    }
+
+    return rtrim(SITE_URL, '/') . '/assets/img/' . ltrim($ruta, '/');
+}
+
 // ============================================================
 // Generación de Número de Orden
 // ============================================================

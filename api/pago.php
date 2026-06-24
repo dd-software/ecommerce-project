@@ -41,23 +41,25 @@ $respuesta = [
 
 try {
     // ============================================================
-    // Validar autenticación y método
+    // Validar método y acción
     // ============================================================
-    if (!esta_logueado()) {
-        throw new Exception('Debes iniciar sesión para procesar el pago.');
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($_GET['action'] ?? '') !== 'capturar') {
         throw new Exception('Método no permitido. Usa POST.');
     }
 
-    // Validar CSRF
-    $token = $_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (!csrf_validar($token)) {
-        throw new Exception('Error de seguridad. Token CSRF inválido.');
-    }
+    $accion = trim($_POST['action'] ?? $_GET['action'] ?? '');
 
-    $accion = trim($_POST['action'] ?? '');
+    if ($accion === 'capturar') {
+        $token = $_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!empty($token) && !csrf_validar($token)) {
+            throw new Exception('Error de seguridad. Token CSRF inválido.');
+        }
+    } else {
+        $token = $_POST['_csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!csrf_validar($token)) {
+            throw new Exception('Error de seguridad. Token CSRF inválido.');
+        }
+    }
     if (empty($accion)) {
         throw new Exception('Parámetro action es requerido.');
     }
@@ -138,21 +140,31 @@ try {
             // devuelve un ID de orden (order_id) y una URL de aprobación
             // (approval_url) a la que redirigimos al usuario.
 
-            $orden_id = isset($_POST['orden_id']) ? (int) $_POST['orden_id'] : 0;
+            $orden_id_sesion = !empty($_SESSION['pending_order_id']) ? (int) $_SESSION['pending_order_id'] : 0;
+            $orden_id = isset($_POST['orden_id']) ? (int) $_POST['orden_id'] : ($orden_id_sesion > 0 ? $orden_id_sesion : 0);
             if ($orden_id <= 0) {
                 throw new Exception('ID de orden inválido.');
             }
 
-            // Verificar que la orden pertenezca al usuario logueado
-            $stmt = $pdo->prepare("
-                SELECT id, numero, total, estado
-                FROM pedidos
-                WHERE id = :id AND usuario_id = :uid
-            ");
-            $stmt->execute([
-                ':id'  => $orden_id,
-                ':uid' => $_SESSION['usuario_id'],
-            ]);
+            // Verificar que la orden pertenezca al usuario logueado o a la sesión de checkout
+            if (esta_logueado()) {
+                $stmt = $pdo->prepare("
+                    SELECT id, numero, total, estado
+                    FROM pedidos
+                    WHERE id = :id AND usuario_id = :uid
+                ");
+                $stmt->execute([
+                    ':id'  => $orden_id,
+                    ':uid' => $_SESSION['usuario_id'],
+                ]);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT id, numero, total, estado
+                    FROM pedidos
+                    WHERE id = :id AND usuario_id IS NULL
+                ");
+                $stmt->execute([':id' => $orden_id]);
+            }
             $orden = $stmt->fetch();
 
             if (!$orden) {
@@ -194,8 +206,8 @@ try {
                         'reference_id' => $orden['numero'],
                         'description'  => 'Compra en ' . SITE_NAME . ' - Orden ' . $orden['numero'],
                         'amount' => [
-                            'currency_code' => 'CLP',
-                            'value'         => number_format((float) $orden['total'], 0, '.', ''),
+                            'currency_code' => PAYPAL_CURRENCY,
+                            'value'         => number_format((float) $orden['total'], 2, '.', ''),
                         ],
                     ],
                 ],
@@ -203,7 +215,7 @@ try {
                     'brand_name'          => SITE_NAME,
                     'landing_page'        => 'NO_PREFERENCE',
                     'user_action'         => 'PAY_NOW',
-                    'return_url'          => SITE_URL . '/api/pago.php?action=capturar',
+                    'return_url'          => SITE_URL . '/api/pago.php?action=capturar&orden_id=' . $orden_id,
                     'cancel_url'          => SITE_URL . '/checkout.php?cancelado=1',
                 ],
             ]);
@@ -311,16 +323,25 @@ try {
                 throw new Exception('ID de orden interna no proporcionado.');
             }
 
-            // Verificar que la orden pertenezca al usuario
-            $stmt = $pdo->prepare("
-                SELECT id, numero, total, estado
-                FROM pedidos
-                WHERE id = :id AND usuario_id = :uid
-            ");
-            $stmt->execute([
-                ':id'  => $orden_id,
-                ':uid' => $_SESSION['usuario_id'],
-            ]);
+            // Verificar que la orden pertenezca al usuario logueado o a la sesión de checkout
+            if (esta_logueado()) {
+                $stmt = $pdo->prepare("
+                    SELECT id, numero, total, estado
+                    FROM pedidos
+                    WHERE id = :id AND usuario_id = :uid
+                ");
+                $stmt->execute([
+                    ':id'  => $orden_id,
+                    ':uid' => $_SESSION['usuario_id'],
+                ]);
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT id, numero, total, estado
+                    FROM pedidos
+                    WHERE id = :id AND usuario_id IS NULL
+                ");
+                $stmt->execute([':id' => $orden_id]);
+            }
             $orden = $stmt->fetch();
 
             if (!$orden) {
@@ -393,29 +414,31 @@ try {
                     // Actualizar pago a completado
                     $stmt = $pdo->prepare("
                         UPDATE pagos
-                        SET estado = 'completado', fecha_pago = NOW(), referencia_pasarela = :ref
-                        WHERE pedido_id = :pid AND metodo = 'paypal'
+                        SET estado = 'completado', fecha_pago = NOW(), referencia_pasarela = ?
+                        WHERE pedido_id = ? AND metodo = 'paypal'
                     ");
                     $stmt->execute([
-                        ':ref' => $transaction_id ?: $paypal_order_id,
-                        ':pid' => $orden_id,
+                        $transaction_id ?: $paypal_order_id,
+                        $orden_id,
                     ]);
 
+                    // Obtener el ID del pago para el historial
+                    $stmt_pago = $pdo->prepare("SELECT id FROM pagos WHERE pedido_id = ?");
+                    $stmt_pago->execute([$orden_id]);
+                    $pago = $stmt_pago->fetch();
+                    $pago_id = $pago['id'] ?? null;
+
                     // Insertar en historial_pagos
-                    $stmt_historial = $pdo->prepare("
-                        INSERT INTO historial_pagos (pago_id, estado_anterior, estado_nuevo, observacion, fecha)
-                        VALUES (
-                            (SELECT id FROM pagos WHERE pedido_id = :pid),
-                            'pendiente',
-                            'completado',
-                            :observacion,
-                            NOW()
-                        )
-                    ");
-                    $stmt_historial->execute([
-                        ':pid'         => $orden_id,
-                        ':observacion' => 'Pago confirmado vía PayPal. Transacción: ' . ($transaction_id ?: $paypal_order_id),
-                    ]);
+                    if ($pago_id) {
+                        $stmt_historial = $pdo->prepare("
+                            INSERT INTO historial_pagos (pago_id, estado_anterior, estado_nuevo, observacion, fecha)
+                            VALUES (?, 'pendiente', 'completado', ?, NOW())
+                        ");
+                        $stmt_historial->execute([
+                            $pago_id,
+                            'Pago confirmado vía PayPal. Transacción: ' . ($transaction_id ?: $paypal_order_id),
+                        ]);
+                    }
 
                     // ============================================================
                     // Confirmar descuento de inventario
@@ -429,50 +452,49 @@ try {
                     $stmt_reservas = $pdo->prepare("
                         SELECT producto_id, cantidad
                         FROM reservas_inventario
-                        WHERE orden_id = :oid AND estado = 'activa'
+                        WHERE orden_id = ? AND estado = 'activa'
                     ");
-                    $stmt_reservas->execute([':oid' => $orden_id]);
+                    $stmt_reservas->execute([$orden_id]);
                     $reservas = $stmt_reservas->fetchAll();
 
                     $stmt_descuento = $pdo->prepare("
                         UPDATE inventario
-                        SET cantidad = cantidad - :cant,
-                            cantidad_reservada = cantidad_reservada - :cant
-                        WHERE producto_id = :pid
+                        SET cantidad = cantidad - ?,
+                            cantidad_reservada = cantidad_reservada - ?
+                        WHERE producto_id = ?
                     ");
 
                     $stmt_confirmar_reserva = $pdo->prepare("
                         UPDATE reservas_inventario
                         SET estado = 'confirmada'
-                        WHERE orden_id = :oid AND estado = 'activa'
+                        WHERE orden_id = ? AND estado = 'activa'
                     ");
 
                     $stmt_mov_salida = $pdo->prepare("
                         INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, referencia, fecha)
-                        VALUES (:producto_id, 'salida', :cantidad, :referencia, NOW())
+                        VALUES (?, 'salida', ?, ?, NOW())
                     ");
 
                     foreach ($reservas as $reserva) {
                         // Descontar stock real y reserva
-                        $stmt_descuento->execute([
-                            ':cant' => (int) $reserva['cantidad'],
-                            ':pid'  => $reserva['producto_id'],
-                        ]);
+                        $cant = (int) $reserva['cantidad'];
+                        $pid = $reserva['producto_id'];
+                        $stmt_descuento->execute([$cant, $cant, $pid]);
 
                         // Registrar movimiento de salida
                         $stmt_mov_salida->execute([
-                            ':producto_id' => $reserva['producto_id'],
-                            ':cantidad'    => (int) $reserva['cantidad'],
-                            ':referencia'  => $orden['numero'],
+                            $pid,
+                            $cant,
+                            $orden['numero'],
                         ]);
                     }
 
                     // Confirmar reservas
-                    $stmt_confirmar_reserva->execute([':oid' => $orden_id]);
+                    $stmt_confirmar_reserva->execute([$orden_id]);
 
                     // Actualizar estado del pedido a 'confirmado'
-                    $stmt = $pdo->prepare("UPDATE pedidos SET estado = 'confirmado' WHERE id = :id");
-                    $stmt->execute([':id' => $orden_id]);
+                    $stmt = $pdo->prepare("UPDATE pedidos SET estado = 'confirmado' WHERE id = ?");
+                    $stmt->execute([$orden_id]);
 
                     $pdo->commit();
 
@@ -503,52 +525,51 @@ try {
                     $stmt_reservas = $pdo->prepare("
                         SELECT producto_id, cantidad
                         FROM reservas_inventario
-                        WHERE orden_id = :oid AND estado = 'activa'
+                        WHERE orden_id = ? AND estado = 'activa'
                     ");
-                    $stmt_reservas->execute([':oid' => $orden_id]);
+                    $stmt_reservas->execute([$orden_id]);
                     $reservas = $stmt_reservas->fetchAll();
 
                     $stmt_liberar = $pdo->prepare("
                         UPDATE inventario
-                        SET cantidad_reservada = cantidad_reservada - :cant
-                        WHERE producto_id = :pid
+                        SET cantidad_reservada = cantidad_reservada - ?
+                        WHERE producto_id = ?
                     ");
 
                     $stmt_mov_liberacion = $pdo->prepare("
                         INSERT INTO movimientos_inventario (producto_id, tipo_movimiento, cantidad, referencia, fecha)
-                        VALUES (:producto_id, 'liberacion', :cantidad, :referencia, NOW())
+                        VALUES (?, 'liberacion', ?, ?, NOW())
                     ");
 
                     $stmt_update_reserva = $pdo->prepare("
                         UPDATE reservas_inventario
                         SET estado = 'liberada'
-                        WHERE orden_id = :oid AND estado = 'activa'
+                        WHERE orden_id = ? AND estado = 'activa'
                     ");
 
                     foreach ($reservas as $reserva) {
-                        $stmt_liberar->execute([
-                            ':cant' => (int) $reserva['cantidad'],
-                            ':pid'  => $reserva['producto_id'],
-                        ]);
+                        $cant = (int) $reserva['cantidad'];
+                        $pid = $reserva['producto_id'];
+                        $stmt_liberar->execute([$cant, $pid]);
 
                         $stmt_mov_liberacion->execute([
-                            ':producto_id' => $reserva['producto_id'],
-                            ':cantidad'    => (int) $reserva['cantidad'],
-                            ':referencia'  => $orden['numero'] . '-payment-failed',
+                            $pid,
+                            $cant,
+                            $orden['numero'] . '-payment-failed',
                         ]);
                     }
 
-                    $stmt_update_reserva->execute([':oid' => $orden_id]);
+                    $stmt_update_reserva->execute([$orden_id]);
 
                     // Actualizar pago a rechazado
                     $stmt = $pdo->prepare("
                         UPDATE pagos
-                        SET estado = 'rechazado', referencia_pasarela = :ref
-                        WHERE pedido_id = :pid AND metodo = 'paypal'
+                        SET estado = 'rechazado', referencia_pasarela = ?
+                        WHERE pedido_id = ? AND metodo = 'paypal'
                     ");
                     $stmt->execute([
-                        ':ref' => $paypal_order_id,
-                        ':pid' => $orden_id,
+                        $paypal_order_id,
+                        $orden_id,
                     ]);
 
                     $pdo->commit();

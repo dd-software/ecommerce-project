@@ -32,7 +32,7 @@ if (empty($numero_orden)) {
     // ============================================================
     // [PEDAGÓGICO] Si el usuario está logueado, solo puede ver
     // sus propias órdenes. Si es admin, puede ver cualquier orden.
-    $sql  = "SELECT id, numero, estado, subtotal, iva, costo_envio, total, direccion_envio, fecha_creacion, paypal_order_id FROM pedidos WHERE numero = :numero";
+    $sql  = "SELECT id, numero, estado, subtotal, iva, costo_envio, total, direccion_envio, fecha_creacion FROM pedidos WHERE numero = :numero";
     $params = [':numero' => $numero_orden];
 
     // Si no es admin, filtrar por usuario actual
